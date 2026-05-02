@@ -29,9 +29,33 @@
 		85C197852FA5B2970098CFD0 /* PeraTalkUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PeraTalkUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		85FC7A682FA5CF0200349A00 /* Exceptions for "PeraTalk" folder in "PeraTalk" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				README.md,
+			);
+			target = 85C1976B2FA5B2950098CFD0 /* PeraTalk */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		85FC7A692FA5CF0200349A00 /* Exceptions for "PeraTalk" folder in "Compile Sources" phase from "PeraTalk" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = 85C197682FA5B2950098CFD0 /* Sources */;
+			membershipExceptions = (
+				README.md,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		85C1976E2FA5B2950098CFD0 /* PeraTalk */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				85FC7A682FA5CF0200349A00 /* Exceptions for "PeraTalk" folder in "PeraTalk" target */,
+				85FC7A692FA5CF0200349A00 /* Exceptions for "PeraTalk" folder in "Compile Sources" phase from "PeraTalk" target */,
+			);
 			path = PeraTalk;
 			sourceTree = "<group>";
 		};
