@@ -1,10 +1,3 @@
-//
-//  PeraTalkApp.swift
-//  PeraTalk
-//
-//  Created by Taisei Abe on 2026/05/02.
-//
-
 import SwiftUI
 import SwiftData
 
@@ -12,12 +5,30 @@ import SwiftData
 struct PeraTalkApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            CachedSession.self,
+            CachedUtterance.self,
+            CachedSessionFeedback.self,
+            CachedLemma.self,
+            CachedLemmaSurface.self,
+            CachedDictionaryPackMeta.self,
+            CachedVocabulary.self,
+            CachedVocabularyUsage.self,
+            CachedVocabularyExample.self,
+            CachedTag.self,
+            CachedVocabularyTagLink.self,
+            CachedPersona.self,
+            CachedTheme.self,
+            CachedSessionMemorySummary.self,
+            CachedProfile.self,
+            CachedSubscription.self,
+            SyncMeta.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
+            SeedDataService.loadIfNeeded(context: container.mainContext)
+            return container
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
@@ -25,7 +36,7 @@ struct PeraTalkApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainTabView()
         }
         .modelContainer(sharedModelContainer)
     }

@@ -1,0 +1,41 @@
+{
+  "pack_key": "en_lemmas_sample",
+  "pack_version": "sample-0.0.1",
+  "sha256": null,
+  "lemmas": [
+    {
+      "stable_lemma_id": "a1e2f3d4-5c6b-4890-a8cd-ef1234567890",
+      "lemma": "study",
+      "pos": "verb",
+      "language": "en",
+      "surfaces": [
+        { "text": "study", "form_kind": "verb_base", "ipa": "/ˈstʌdi/" },
+        { "text": "studies", "form_kind": "verb_third_person_singular", "ipa": null },
+        { "text": "studying", "form_kind": "verb_present_participle", "ipa": null },
+        { "text": "studied", "form_kind": "verb_past", "ipa": null },
+        { "text": "studied", "form_kind": "verb_past_participle", "ipa": null }
+      ]
+    },
+    {
+      "stable_lemma_id": "b2e3f4d5-6c7b-4890-b9de-f12345678901",
+      "lemma": "happy",
+      "pos": "adjective",
+      "language": "en",
+      "surfaces": [
+        { "text": "happy", "form_kind": "adj_positive", "ipa": "/ˈhæpi/" },
+        { "text": "happier", "form_kind": "adj_comparative", "ipa": null },
+        { "text": "happiest", "form_kind": "adj_superlative", "ipa": null }
+      ]
+    },
+    {
+      "stable_lemma_id": "c3f4e5d6-7d8c-4912-bcde-012345678901",
+      "lemma": "book",
+      "pos": "noun",
+      "language": "en",
+      "surfaces": [
+        { "text": "book", "form_kind": "noun_singular", "ipa": "/bʊk/" },
+        { "text": "books", "form_kind": "noun_plural", "ipa": null }
+      ]
+    }
+  ]
+}
