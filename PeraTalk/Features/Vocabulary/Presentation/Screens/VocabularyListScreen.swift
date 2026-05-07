@@ -9,10 +9,12 @@ enum VocabularyRoute: Hashable {
 
 struct VocabularyListScreen: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.supabaseTableClient) private var supabaseTableClient
     @State private var model = VocabularyListScreenModel()
     @State private var path = NavigationPath()
     @State private var showAddTagAlert = false
     @State private var newTagName = ""
+    @Query private var profiles: [CachedProfile]
     @Query(filter: #Predicate<CachedVocabulary> { !$0.tombstone },
            sort: \CachedVocabulary.cachedAt, order: .reverse)
     private var vocabularies: [CachedVocabulary]
@@ -31,7 +33,10 @@ struct VocabularyListScreen: View {
             }
             .navigationTitle("Vocabulary")
             .task {
-                model = VocabularyListScreenModel.live(modelContext: modelContext)
+                model = VocabularyListScreenModel.live(
+                    modelContext: modelContext,
+                    supabaseTableClient: supabaseTableClient
+                )
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -49,6 +54,14 @@ struct VocabularyListScreen: View {
                     VocabularyAddScreen(vocabularyId: id)
                 }
             }
+            .alert("辞書パック", isPresented: Binding(
+                get: { model.remoteDictionaryPackBanner != nil },
+                set: { if !$0 { model.remoteDictionaryPackBanner = nil } }
+            )) {
+                Button("OK") { model.remoteDictionaryPackBanner = nil }
+            } message: {
+                Text(model.remoteDictionaryPackBanner ?? "")
+            }
             .alert("タグを追加", isPresented: $showAddTagAlert) {
                 TextField("タグ名", text: $newTagName)
                 Button("キャンセル", role: .cancel) {}
@@ -60,6 +73,10 @@ struct VocabularyListScreen: View {
                 }
             }
         }
+    }
+
+    private var vocabularyPreferences: VocabularyListScreenPreferences {
+        profiles.first?.screenDisplayPreferencesOrDefault.vocabularyList ?? VocabularyListScreenPreferences()
     }
 
     // MARK: - Tag Filter
@@ -87,19 +104,24 @@ struct VocabularyListScreen: View {
     // MARK: - Vocabulary List
 
     private var filteredVocabularies: [CachedVocabulary] {
-        model.filteredVocabularies(vocabularies)
+        model.filteredVocabularies(vocabularies, sortOrder: vocabularyPreferences.sortOrder)
     }
 
     private var vocabularyListSection: some View {
-        LazyVStack(spacing: 12) {
+        LazyVStack(spacing: vocabularyPreferences.listDensity == .compact ? 6 : 12) {
             ForEach(filteredVocabularies, id: \.remoteId) { vocabulary in
                 let usage = model.firstUsage(of: vocabulary)
                 NavigationLink(value: VocabularyRoute.detail(vocabulary.remoteId)) {
                     VocabularyCardView(
                         headword: vocabulary.headword,
-                        ipa: nil,
-                        definition: usage?.definitionTarget,
-                        kind: usage.flatMap { VocabularyKind(kindString: $0.kind) }
+                        showPartOfSpeech: vocabularyPreferences.showPartOfSpeech,
+                        kind: usage.flatMap { VocabularyKind(kindString: $0.kind) },
+                        japaneseDefinition: vocabularyPreferences.showJapaneseDefinition
+                            ? usage.flatMap { vocabulary.resolvedDefinitionAux(for: $0) } : nil,
+                        englishDefinition: vocabularyPreferences.showEnglishDefinition
+                            ? usage.flatMap { vocabulary.resolvedDefinitionTarget(for: $0) } : nil,
+                        ipa: vocabularyPreferences.showPronunciation ? usage?.ipa : nil,
+                        density: vocabularyPreferences.listDensity
                     )
                 }
                 .buttonStyle(.plain)
@@ -114,6 +136,12 @@ struct VocabularyListScreen: View {
             Button("単語を追加") {
                 path.append(VocabularyRoute.add)
             }
+            Button("サーバーから辞書を同期", systemImage: "arrow.down.circle") {
+                Task {
+                    await model.syncRemoteDictionaryPackFromCatalog(context: modelContext)
+                }
+            }
+            .disabled(model.isSyncingRemoteDictionaryPack)
             Button("タグを追加") {
                 newTagName = ""
                 showAddTagAlert = true

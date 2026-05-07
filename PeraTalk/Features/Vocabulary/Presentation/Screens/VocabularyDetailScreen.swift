@@ -184,28 +184,6 @@ struct VocabularyDetailScreen: View {
 
     // MARK: - Usages
 
-    private func resolvedDefinitionAux(vocabulary: CachedVocabulary, usage: CachedVocabularyUsage) -> String? {
-        let fromUsage = usage.definitionAux?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if !fromUsage.isEmpty { return usage.definitionAux }
-        if let lemma = vocabulary.lemma, let kind = VocabularyKind(rawValue: usage.kind) {
-            let pack = lemma.packUsageDefinitions(for: kind)
-            let packAux = pack.aux.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !packAux.isEmpty { return pack.aux }
-        }
-        return usage.definitionAux
-    }
-
-    private func resolvedDefinitionTarget(vocabulary: CachedVocabulary, usage: CachedVocabularyUsage) -> String? {
-        let fromUsage = usage.definitionTarget?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if !fromUsage.isEmpty { return usage.definitionTarget }
-        if let lemma = vocabulary.lemma, let kind = VocabularyKind(rawValue: usage.kind) {
-            let pack = lemma.packUsageDefinitions(for: kind)
-            let packTarget = pack.target.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !packTarget.isEmpty { return pack.target }
-        }
-        return usage.definitionTarget
-    }
-
     private func usagesSection(_ vocabulary: CachedVocabulary) -> some View {
         let activeUsages = vocabulary.usages
             .filter { !$0.tombstone }
@@ -216,8 +194,8 @@ struct VocabularyDetailScreen: View {
                 UsageCardView(
                     kind: usage.kind,
                     ipa: usage.ipa,
-                    definitionAux: resolvedDefinitionAux(vocabulary: vocabulary, usage: usage),
-                    definitionTarget: resolvedDefinitionTarget(vocabulary: vocabulary, usage: usage),
+                    definitionAux: vocabulary.resolvedDefinitionAux(for: usage),
+                    definitionTarget: vocabulary.resolvedDefinitionTarget(for: usage),
                     examples: usage.examples,
                     translations: translations,
                     pendingExampleTranslationIds: exampleTranslationPendingIds,

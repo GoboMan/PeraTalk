@@ -1,6 +1,9 @@
 import SwiftUI
+import SwiftData
 
 struct LogCalendarScreen: View {
+    @Query private var profiles: [CachedProfile]
+
     @State private var model = LogCalendarScreenModel()
 
     var body: some View {
@@ -12,6 +15,11 @@ struct LogCalendarScreen: View {
 
                 Text("学習ログ・カレンダー画面")
                     .font(.title)
+
+                Text(weekdayPreferenceSummary)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("・月単位カレンダー表示")
@@ -29,5 +37,10 @@ struct LogCalendarScreen: View {
             .padding()
             .navigationTitle("学習ログ")
         }
+    }
+
+    private var weekdayPreferenceSummary: String {
+        let pref = profiles.first?.screenDisplayPreferencesOrDefault.learningLog.calendarFirstWeekday ?? .system
+        return "週の始まり: \(pref.displayName)"
     }
 }

@@ -12,25 +12,27 @@ struct UsageCardView: View {
     /// 補助言語に応じた例文下のキャプション（例: 「和訳」）。
     var exampleTranslationLineTitle: String? = nil
 
-    private var kindDisplay: String {
-        VocabularyKind(kindString: kind)?.displayName ?? kind
+    private var resolvedKind: VocabularyKind? {
+        VocabularyKind(kindString: kind)
+    }
+
+    private var showsPartOfSpeechOrPronunciationRow: Bool {
+        resolvedKind != nil || !(ipa ?? "").isEmpty
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Text(kindDisplay)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .foregroundStyle(.white)
-                    .background(Capsule().fill(Color.teal))
+            if showsPartOfSpeechOrPronunciationRow {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    VocabularyPartOfSpeechBadge(kind: resolvedKind)
 
-                if let ipa, !ipa.isEmpty {
-                    Text(ipa)
-                        .font(.subheadline)
-                        .foregroundStyle(.teal)
+                    if let ipa, !ipa.isEmpty {
+                        Text(ipa)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer(minLength: 0)
                 }
             }
 

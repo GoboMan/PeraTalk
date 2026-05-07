@@ -1,8 +1,15 @@
-import SwiftUI
 import SwiftData
+import Supabase
+import SwiftUI
 
 @main
 struct PeraTalkApp: App {
+    private let supabaseLiveKit: SupabaseClientFactory.LiveKit?
+
+    init() {
+        supabaseLiveKit = SupabaseClientFactory.makeLiveKitIfConfigured()
+    }
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             CachedSession.self,
@@ -23,6 +30,13 @@ struct PeraTalkApp: App {
             CachedSubscription.self,
             SyncMeta.self,
         ])
+
+        let fileManager = FileManager.default
+        let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        if !fileManager.fileExists(atPath: appSupportURL.path) {
+            try? fileManager.createDirectory(at: appSupportURL, withIntermediateDirectories: true)
+        }
+
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {
@@ -37,6 +51,8 @@ struct PeraTalkApp: App {
     var body: some Scene {
         WindowGroup {
             MainTabView()
+                .environment(\.supabaseClient, supabaseLiveKit?.client)
+                .environment(\.supabaseTableClient, supabaseLiveKit?.tableClient)
         }
         .modelContainer(sharedModelContainer)
     }

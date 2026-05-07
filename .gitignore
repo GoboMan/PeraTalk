@@ -1,0 +1,4 @@
+.venv_layer_tools/
+
+# Supabase / Xcode — 実値はコミットしない（Secrets.example.xcconfig を参照）
+Config/Secrets.xcconfig

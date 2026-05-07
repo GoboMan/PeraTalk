@@ -1,6 +1,8 @@
 import SwiftUI
+import SwiftData
 
 struct ConversationStartScreen: View {
+    @Query private var profiles: [CachedProfile]
     @State private var model = ConversationStartScreenModel()
 
     var body: some View {
@@ -13,36 +15,42 @@ struct ConversationStartScreen: View {
                 Text("会話開始画面")
                     .font(.title)
 
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("モード選択:")
-                    Text("  ・Self（独り言）")
-                    Text("  ・AI 自由テーマ")
-                    Text("  ・AI テーマあり")
+                if showStartScreenGuide {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("モード選択:")
+                        Text("  ・Self（独り言）")
+                        Text("  ・AI 自由テーマ")
+                        Text("  ・AI テーマあり")
 
-                    Divider()
+                        Divider()
 
-                    Text("ペルソナ選択（6 体）:")
-                    Text("  US: Ethan / Chloe")
-                    Text("  GB: Oliver / Sophie")
-                    Text("  AU: Liam / Isla")
+                        Text("ペルソナ選択（6 体）:")
+                        Text("  US: Ethan / Chloe")
+                        Text("  GB: Oliver / Sophie")
+                        Text("  AU: Liam / Isla")
 
-                    Divider()
+                        Divider()
 
-                    Text("テーマ選択（テーマありモード時）")
+                        Text("テーマ選択（テーマありモード時）")
 
-                    Divider()
+                        Divider()
 
-                    Text("「会話を始める」ボタン → セッション画面へ")
+                        Text("「会話を始める」ボタン → セッション画面へ")
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                    .background(.fill.tertiary)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
-                .background(.fill.tertiary)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 Spacer()
             }
             .padding()
             .navigationTitle("会話")
         }
+    }
+
+    private var showStartScreenGuide: Bool {
+        profiles.first?.screenDisplayPreferencesOrDefault.conversation.showStartScreenGuide ?? true
     }
 }

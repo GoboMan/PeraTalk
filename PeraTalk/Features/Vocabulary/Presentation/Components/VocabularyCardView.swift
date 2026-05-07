@@ -2,39 +2,47 @@ import SwiftUI
 
 struct VocabularyCardView: View {
     let headword: String
-    let ipa: String?
-    let definition: String?
+    var showPartOfSpeech: Bool = true
     var kind: VocabularyKind?
+    var japaneseDefinition: String?
+    var englishDefinition: String?
+    var ipa: String?
     /// 辞典レマへのリンク表示（一覧用の短い行）。
     var lemmaCaption: String? = nil
+    var density: ListRowDensity = .comfortable
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline) {
+        VStack(alignment: .leading, spacing: density == .compact ? 2 : 4) {
+            // 辞書エントリと同様：見出しと品詞をベースライン揃えで同一行にまとめる。
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(headword)
-                    .font(.headline)
+                    .font(density == .compact ? .subheadline : .headline)
                     .fontWeight(.bold)
+                    .lineLimit(2)
+                    .layoutPriority(1)
 
-                if let kind {
-                    Text(kind.englishLabel)
-                        .font(.caption2)
-                        .fontWeight(.semibold)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(kind.badgeColor.opacity(0.15))
-                        .foregroundStyle(kind.badgeColor)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                if showPartOfSpeech {
+                    VocabularyPartOfSpeechBadge(kind: kind)
                 }
+
+                Spacer(minLength: 0)
             }
 
+            // 発音は見出しブロック直下（形と意味のあいだを埋めるのに一般的な位置）。
             if let ipa, !ipa.isEmpty {
                 Text(ipa)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
-            if let definition, !definition.isEmpty {
-                Text(definition)
+            if let japaneseDefinition, !japaneseDefinition.isEmpty {
+                Text(japaneseDefinition)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let englishDefinition, !englishDefinition.isEmpty {
+                Text(englishDefinition)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -46,7 +54,8 @@ struct VocabularyCardView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
+        .padding(.vertical, density == .compact ? 8 : 14)
+        .padding(.horizontal, density == .compact ? 12 : 16)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color(.systemGray4), lineWidth: 1)

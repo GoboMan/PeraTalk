@@ -1,0 +1,18 @@
+//
+// Supabase（クライアント用・現行の API Keys 方式）
+// - SUPABASE_URL … Dashboard の Project URL（https://xxxx.supabase.co）
+// - SUPABASE_PUBLISHABLE_KEY … Settings → API Keys の Publishable key（sb_publishable_...）
+// Secret keys（sb_secret_...）／service_role はクライアントに置かないこと。
+//
+// Secrets.xcconfig が無い環境では値が空のままビルドされます。
+// セットアップ: Secrets.example.xcconfig を Secrets.xcconfig にコピーして値を埋めてください。
+//
+
+SUPABASE_URL = "https://zbnwaawfvhjrbrfobbvw.supabase.co"
+SUPABASE_PUBLISHABLE_KEY = "sb_publishable_SdEdr2cotYZPeFuED4I5iQ_WLHaRj62"
+
+#include? "Secrets.xcconfig"
+
+// GENERATE_INFOPLIST_FILE と組み合わせて Bundle で参照可能にする
+INFOPLIST_KEY_SUPABASE_URL = $(SUPABASE_URL)
+INFOPLIST_KEY_SUPABASE_PUBLISHABLE_KEY = $(SUPABASE_PUBLISHABLE_KEY)

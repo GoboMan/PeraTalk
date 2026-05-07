@@ -27,6 +27,23 @@ struct SwiftDataProfileRepository: ProfileRepository {
         return profile
     }
 
+    func updateScreenDisplayPreferences(_ preferences: ScreenDisplayPreferences) async throws -> CachedProfile {
+        let data = try preferences.encoded()
+        let descriptor = FetchDescriptor<CachedProfile>()
+        guard let profile = try context.fetch(descriptor).first else {
+            let newProfile = CachedProfile(
+                auxiliaryLanguage: AuxiliaryLanguage.systemDefault.rawValue,
+                screenDisplayPreferencesData: data
+            )
+            context.insert(newProfile)
+            try context.save()
+            return newProfile
+        }
+        profile.screenDisplayPreferencesData = data
+        try context.save()
+        return profile
+    }
+
     func pull() async throws {
         // TODO: リモート同期
     }
