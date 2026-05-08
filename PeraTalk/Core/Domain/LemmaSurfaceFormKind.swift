@@ -60,4 +60,33 @@ extension LemmaSurfaceFormKind {
         .adjComparative,
         .adjSuperlative,
     ]
+
+    /// 名詞の表示順。
+    static let nounInflectionDisplayOrder: [LemmaSurfaceFormKind] = [
+        .nounSingular,
+        .nounPlural,
+    ]
+
+    /// 副詞の表示順。
+    static let adverbInflectionDisplayOrder: [LemmaSurfaceFormKind] = [
+        .advPositive,
+        .advComparative,
+        .advSuperlative,
+    ]
+
+    /// `usageKind` に対して `form_kind` が許容されるか（辞書パック検証用）。
+    func isCompatible(withUsageKind usageKind: VocabularyKind) -> Bool {
+        switch usageKind {
+        case .verb, .phrasalVerb:
+            return Self.verbInflectionDisplayOrder.contains(self)
+        case .adjective:
+            return Self.adjectiveInflectionDisplayOrder.contains(self)
+        case .noun:
+            return Self.nounInflectionDisplayOrder.contains(self)
+        case .adverb:
+            return Self.adverbInflectionDisplayOrder.contains(self) || self == .lemmaBase
+        case .preposition, .conjunction, .pronoun, .interjection, .idiom:
+            return self == .lemmaBase
+        }
+    }
 }

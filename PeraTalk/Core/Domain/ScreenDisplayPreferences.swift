@@ -74,8 +74,6 @@ struct ConversationScreenPreferences: Codable, Equatable, Sendable {
 struct VocabularyListScreenPreferences: Codable, Equatable, Sendable {
     var listDensity: ListRowDensity
     var sortOrder: VocabularyListSortOrder
-    /// 一覧カードで品詞バッジを表示する。
-    var showPartOfSpeech: Bool
     /// 一覧で補助言語側の定義（例: 日本語訳）を表示する。
     var showJapaneseDefinition: Bool
     /// 一覧でターゲット言語側の定義（英訳）を表示する。
@@ -86,14 +84,12 @@ struct VocabularyListScreenPreferences: Codable, Equatable, Sendable {
     init(
         listDensity: ListRowDensity = .comfortable,
         sortOrder: VocabularyListSortOrder = .recentlyAdded,
-        showPartOfSpeech: Bool = true,
         showJapaneseDefinition: Bool = true,
         showEnglishDefinition: Bool = true,
         showPronunciation: Bool = true
     ) {
         self.listDensity = listDensity
         self.sortOrder = sortOrder
-        self.showPartOfSpeech = showPartOfSpeech
         self.showJapaneseDefinition = showJapaneseDefinition
         self.showEnglishDefinition = showEnglishDefinition
         self.showPronunciation = showPronunciation
@@ -103,7 +99,6 @@ struct VocabularyListScreenPreferences: Codable, Equatable, Sendable {
         case listDensity
         case sortOrder
         case showDefinitionPreview
-        case showPartOfSpeech
         case showJapaneseDefinition
         case showEnglishDefinition
         case showPronunciation
@@ -114,7 +109,6 @@ struct VocabularyListScreenPreferences: Codable, Equatable, Sendable {
         listDensity = try container.decodeIfPresent(ListRowDensity.self, forKey: .listDensity) ?? .comfortable
         sortOrder = try container.decodeIfPresent(VocabularyListSortOrder.self, forKey: .sortOrder) ?? .recentlyAdded
         let legacyShowDefinitionPreview = try container.decodeIfPresent(Bool.self, forKey: .showDefinitionPreview)
-        showPartOfSpeech = try container.decodeIfPresent(Bool.self, forKey: .showPartOfSpeech) ?? true
         showJapaneseDefinition = try container.decodeIfPresent(Bool.self, forKey: .showJapaneseDefinition) ?? true
         showEnglishDefinition = try container.decodeIfPresent(Bool.self, forKey: .showEnglishDefinition) ?? true
         showPronunciation = try container.decodeIfPresent(Bool.self, forKey: .showPronunciation) ?? true
@@ -128,7 +122,6 @@ struct VocabularyListScreenPreferences: Codable, Equatable, Sendable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(listDensity, forKey: .listDensity)
         try container.encode(sortOrder, forKey: .sortOrder)
-        try container.encode(showPartOfSpeech, forKey: .showPartOfSpeech)
         try container.encode(showJapaneseDefinition, forKey: .showJapaneseDefinition)
         try container.encode(showEnglishDefinition, forKey: .showEnglishDefinition)
         try container.encode(showPronunciation, forKey: .showPronunciation)

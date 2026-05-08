@@ -31,82 +31,48 @@ enum SeedVocabularyFromLemmaError: LocalizedError {
 private enum LemmaToVocabularyUsageLinesBuilder {
 
     static func lines(from lemma: CachedLemma) -> [VocabularyAddFormUsageLine] {
-        let primary = VocabularyKind(rawValue: lemma.posRaw) ?? .noun
-        let surfaceRows = lemma.surfaces
-        func hasForm(_ k: LemmaSurfaceFormKind) -> Bool {
-            surfaceRows.contains { $0.formKindRaw == k.rawValue }
-        }
-        let hasVerbSurface = LemmaSurfaceFormKind.verbInflectionDisplayOrder.contains { hasForm($0) }
-        let hasAdjSurface = LemmaSurfaceFormKind.adjectiveInflectionDisplayOrder.contains { hasForm($0) }
+        let usages = lemma.usages.sorted { $0.position < $1.position }
+        return usages.compactMap { usageLine(from: $0) }
+    }
 
-        func ipa(_ k: LemmaSurfaceFormKind) -> String {
-            surfaceRows.first { $0.formKindRaw == k.rawValue }?.ipa ?? ""
+    private static func usageLine(from usage: CachedLemmaUsage) -> VocabularyAddFormUsageLine? {
+        guard let kind = VocabularyKind(rawValue: usage.kind) ?? VocabularyKind(kindString: usage.kind) else {
+            return nil
         }
 
-        func ipaNounSingular() -> String {
-            ipa(.nounSingular)
+        let ipaFromUsage = usage.ipa?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let ipaFromSurfaces = ipa(for: kind, surfaces: usage.surfaces)
+        let ipa = ipaFromUsage.isEmpty ? ipaFromSurfaces : ipaFromUsage
+
+        let aux = usage.definitionAux?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let target = usage.definitionTarget?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        return VocabularyAddFormUsageLine(
+            kind: kind,
+            ipa: ipa,
+            definitionAux: aux,
+            definitionTarget: target,
+            examples: [VocabularyAddFormExampleLine(sentence: "")]
+        )
+    }
+
+    private static func ipa(for kind: VocabularyKind, surfaces: [CachedLemmaSurface]) -> String {
+        func ipa(_ form: LemmaSurfaceFormKind) -> String {
+            surfaces.first { $0.formKindRaw == form.rawValue }?.ipa?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         }
 
-        func ipaLemmaBase() -> String {
-            ipa(.lemmaBase)
-        }
-
-        func usageLine(kind: VocabularyKind, ipaString: String = "", lemma: CachedLemma) -> VocabularyAddFormUsageLine {
-            let defs = lemma.packUsageDefinitions(for: kind)
-            return VocabularyAddFormUsageLine(
-                kind: kind,
-                ipa: ipaString,
-                definitionAux: defs.aux,
-                definitionTarget: defs.target,
-                examples: [VocabularyAddFormExampleLine(sentence: "")]
-            )
-        }
-
-        switch primary {
-        case .verb:
-            var out: [VocabularyAddFormUsageLine] = []
-            if hasVerbSurface {
-                out.append(usageLine(kind: .verb, ipaString: ipa(.verbBase), lemma: lemma))
-            }
-            if hasAdjSurface {
-                out.append(usageLine(kind: .adjective, ipaString: ipa(.adjPositive), lemma: lemma))
-            }
-            if !out.isEmpty { return out }
-            return [usageLine(kind: .verb, lemma: lemma)]
-
-        case .phrasalVerb:
-            if hasVerbSurface {
-                return [usageLine(kind: .phrasalVerb, ipaString: ipa(.verbBase), lemma: lemma)]
-            }
-            return [usageLine(kind: .phrasalVerb, lemma: lemma)]
-
+        switch kind {
+        case .verb, .phrasalVerb:
+            return ipa(.verbBase)
         case .adjective:
-            if hasAdjSurface {
-                return [usageLine(kind: .adjective, ipaString: ipa(.adjPositive), lemma: lemma)]
-            }
-            return [usageLine(kind: .adjective, lemma: lemma)]
-
+            return ipa(.adjPositive)
         case .noun:
-            if hasForm(.nounSingular) || hasForm(.nounPlural) {
-                return [usageLine(kind: .noun, ipaString: ipaNounSingular(), lemma: lemma)]
-            }
-            return [usageLine(kind: .noun, lemma: lemma)]
-
+            return ipa(.nounSingular)
         case .adverb:
-            let advOrder: [LemmaSurfaceFormKind] = [.advPositive, .advComparative, .advSuperlative]
-            if advOrder.contains(where: hasForm) {
-                return [usageLine(kind: .adverb, ipaString: ipa(.advPositive), lemma: lemma)]
-            }
-            if hasForm(.lemmaBase) {
-                return [usageLine(kind: .adverb, ipaString: ipaLemmaBase(), lemma: lemma)]
-            }
-            return [usageLine(kind: .adverb, lemma: lemma)]
-
+            let adv = ipa(.advPositive)
+            return adv.isEmpty ? ipa(.lemmaBase) : adv
         default:
-            if hasForm(.lemmaBase) {
-                return [usageLine(kind: primary, ipaString: ipaLemmaBase(), lemma: lemma)]
-            }
-            return [usageLine(kind: primary, lemma: lemma)]
+            return ipa(.lemmaBase)
         }
     }
 }

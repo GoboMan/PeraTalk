@@ -15,8 +15,10 @@ struct SwiftDataLemmaLookupRepository: LemmaLookupRepository {
             if Self.englishLemmaSearchMatches(lemma.lemmaText, queryLowercased: q) {
                 return true
             }
-            return lemma.surfaces.contains { surface in
-                Self.englishLemmaSearchMatches(surface.text, queryLowercased: q)
+            return lemma.usages.contains { usage in
+                usage.surfaces.contains { surface in
+                    Self.englishLemmaSearchMatches(surface.text, queryLowercased: q)
+                }
             }
         }
 
@@ -26,7 +28,6 @@ struct SwiftDataLemmaLookupRepository: LemmaLookupRepository {
             if t.hasPrefix(q) { return 1 }
             let tokens = Self.englishLemmaTokens(from: t)
             if tokens.contains(where: { $0.hasPrefix(q) }) { return 2 }
-            // 代表レマは一致しないが表面形のみ一致したとき
             return 3
         }
 
@@ -37,22 +38,26 @@ struct SwiftDataLemmaLookupRepository: LemmaLookupRepository {
                 return lhs.lemmaText.localizedCaseInsensitiveCompare(rhs.lemmaText) == .orderedAscending
             }
             .prefix(24)
-            .map {
-                LemmaSearchCandidate(
-                    stableLemmaId: $0.stableLemmaId,
-                    lemmaText: $0.lemmaText,
-                    posRaw: $0.posRaw,
-                    hasParticipleAdjectiveParadigm: Self.lemmaHasParticipleAdjectiveParadigm($0)
-                )
-            }
+            .map(Self.candidate(from:))
     }
 
-    /// 動詞レマに形容詞活用（分詞形容詞）が載っているか。
-    private static func lemmaHasParticipleAdjectiveParadigm(_ lemma: CachedLemma) -> Bool {
-        guard lemma.posRaw == VocabularyKind.verb.rawValue else { return false }
-        return LemmaSurfaceFormKind.adjectiveInflectionDisplayOrder.contains { kind in
-            lemma.surfaces.contains { $0.formKindRaw == kind.rawValue }
+    static func candidate(from lemma: CachedLemma) -> LemmaSearchCandidate {
+        let usagesSorted = lemma.usages.sorted { $0.position < $1.position }
+        let displayNames = usagesSorted.compactMap { row -> String? in
+            guard let k = VocabularyKind(rawValue: row.kind) ?? VocabularyKind(kindString: row.kind) else {
+                return nil
+            }
+            return k.displayName
         }
+        let summary: String? = displayNames.count > 1 ? displayNames.joined(separator: " · ") : nil
+        let primaryKind = usagesSorted.first?.kind ?? ""
+
+        return LemmaSearchCandidate(
+            stableLemmaId: lemma.stableLemmaId,
+            lemmaText: lemma.lemmaText,
+            posRaw: primaryKind,
+            multiKindSummary: summary
+        )
     }
 
     /// 英見出し入力用：文字列全体または英単語トークンがクエリで **前方一致** するときのみ true。

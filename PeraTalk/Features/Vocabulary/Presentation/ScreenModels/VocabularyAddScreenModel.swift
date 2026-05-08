@@ -19,8 +19,8 @@ final class VocabularyAddScreenModel {
 
     private(set) var editingVocabularyId: UUID?
     var isGenerating: Bool = false
-    /// 見出し語の全文 AI と排他。例文 1 件の生成中は該当例文の UUID。
-    var generatingExampleId: UUID?
+    /// オンデバイスで例文を並列生成中のフィールド ID（複数同時可）。
+    private(set) var generatingExampleIds: Set<UUID> = []
     var generationError: String?
 
     private let generateDraftUseCase: GenerateVocabularyAddFormDraftUseCase
@@ -276,7 +276,7 @@ final class VocabularyAddScreenModel {
 
     func generateDraft(tagItems: [TagPickerItem], nativeLanguage: AuxiliaryLanguage) async {
         guard allowsFullWordAIDraft else { return }
-        guard generatingExampleId == nil else { return }
+        guard generatingExampleIds.isEmpty else { return }
         let word = headword.trimmingCharacters(in: .whitespaces)
         guard !word.isEmpty else { return }
 
@@ -296,9 +296,9 @@ final class VocabularyAddScreenModel {
         }
     }
 
-    /// 1 つの例文欄のみオンデバイス生成で埋める。
+    /// 1 つの例文欄をオンデバイス生成で埋める（他の例文欄とは並列可）。
     func generateExampleSentence(usageId: UUID, exampleId: UUID) async {
-        guard generatingExampleId == nil else { return }
+        guard !generatingExampleIds.contains(exampleId) else { return }
         guard !isGenerating else { return }
         let word = headword.trimmingCharacters(in: .whitespaces)
         guard !word.isEmpty,
@@ -308,9 +308,8 @@ final class VocabularyAddScreenModel {
 
         let kind = usages[usageIndex].kind
 
-        generatingExampleId = exampleId
-        generationError = nil
-        defer { generatingExampleId = nil }
+        generatingExampleIds.insert(exampleId)
+        defer { generatingExampleIds.remove(exampleId) }
 
         do {
             guard let sentence = try await generateExampleDraftUseCase.firstExampleSentence(headword: word, usageKind: kind) else {

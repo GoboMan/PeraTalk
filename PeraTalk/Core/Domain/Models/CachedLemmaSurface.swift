@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-/// レンマにひも付く表面形（検索・発話カウントの照会先）。
+/// レマ用法にひも付く表面形（検索・発話カウントの照会先）。
 @Model
 final class CachedLemmaSurface {
     var text: String
@@ -9,7 +9,7 @@ final class CachedLemmaSurface {
     var formKindRaw: String
     var ipa: String?
 
-    var lemma: CachedLemma?
+    var usage: CachedLemmaUsage?
 
     init(text: String, formKindRaw: String, ipa: String? = nil) {
         self.text = text

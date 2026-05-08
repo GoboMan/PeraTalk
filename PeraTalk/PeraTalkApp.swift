@@ -16,6 +16,7 @@ struct PeraTalkApp: App {
             CachedUtterance.self,
             CachedSessionFeedback.self,
             CachedLemma.self,
+            CachedLemmaUsage.self,
             CachedLemmaSurface.self,
             CachedDictionaryPackMeta.self,
             CachedVocabulary.self,

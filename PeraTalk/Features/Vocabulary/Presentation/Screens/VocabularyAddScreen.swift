@@ -347,7 +347,7 @@ private struct VocabularyAddLoadedContent: View {
                     .disabled(
                         model.headword.trimmingCharacters(in: .whitespaces).isEmpty
                             || model.isGenerating
-                            || model.generatingExampleId != nil
+                            || !model.generatingExampleIds.isEmpty
                     )
                 }
             }
@@ -399,14 +399,15 @@ private struct VocabularyAddLoadedContent: View {
                                             .fontWeight(.medium)
                                             .foregroundStyle(.primary)
                                         Spacer(minLength: 8)
-                                        if let kind = VocabularyKind(rawValue: candidate.posRaw) {
+                                        if let kind = VocabularyKind(rawValue: candidate.posRaw)
+                                            ?? VocabularyKind(kindString: candidate.posRaw) {
                                             Text(kind.displayName)
                                                 .font(.caption)
                                                 .foregroundStyle(.secondary)
                                         }
                                     }
-                                    if candidate.hasParticipleAdjectiveParadigm {
-                                        Text("動詞と分詞形容詞が別義")
+                                    if let summary = candidate.multiKindSummary {
+                                        Text(summary)
                                             .font(.caption2)
                                             .foregroundStyle(.tertiary)
                                     }
@@ -604,7 +605,7 @@ private struct VocabularyAddLoadedContent: View {
 
     private func exampleEditingRow(usageId: UUID, exampleId: UUID, number: Int, canDelete: Bool) -> some View {
         let example = exampleBinding(usageId: usageId, exampleId: exampleId)
-        let isGeneratingThis = model.generatingExampleId == exampleId
+        let isGeneratingThis = model.generatingExampleIds.contains(exampleId)
 
         return VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center) {
@@ -637,7 +638,7 @@ private struct VocabularyAddLoadedContent: View {
                 .disabled(
                     model.headword.trimmingCharacters(in: .whitespaces).isEmpty
                         || model.isGenerating
-                        || (model.generatingExampleId != nil && model.generatingExampleId != exampleId)
+                        || model.generatingExampleIds.contains(exampleId)
                 )
             }
 

@@ -45,7 +45,11 @@ struct SettingsScreen: View {
                     } label: {
                         Text("テーマ・外観")
                     }
+                } header: {
+                    Text("外観")
+                }
 
+                Section {
                     NavigationLink {
                         LearningLogDisplaySettingsScreen()
                     } label: {
@@ -64,9 +68,9 @@ struct SettingsScreen: View {
                         Text("単語帳")
                     }
                 } header: {
-                    Text("画面の表示")
+                    Text("各タブ")
                 } footer: {
-                    Text("タブごとに一覧やガイド表示などを調整できます。")
+                    Text("タブごとに一覧の並びや表示項目、ガイドの表示などを調整できます。")
                 }
 
                 Section {

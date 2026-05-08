@@ -1,109 +1,158 @@
 {
   "pack_key": "en_lemmas_scaffold",
-  "pack_version": "scaffold-0.0.5",
+  "pack_version": "scaffold-0.0.6",
   "sha256": null,
   "lemmas": [
     {
       "stable_lemma_id": "a1e2f3d4-5c6b-4890-a8cd-ef1234567890",
       "lemma": "study",
-      "pos": "verb",
       "language": "en",
-      "definition_target": "to learn about something by reading, going to school, etc.",
-      "definition_aux": "（教科などを）勉強する、研究する",
-      "surfaces": [
-        { "text": "study", "form_kind": "verb_base", "ipa": "/ˈstʌdi/" },
-        { "text": "studies", "form_kind": "verb_third_person_singular", "ipa": null },
-        { "text": "studying", "form_kind": "verb_present_participle", "ipa": null },
-        { "text": "studied", "form_kind": "verb_past", "ipa": null },
-        { "text": "studied", "form_kind": "verb_past_participle", "ipa": null }
+      "usages": [
+        {
+          "kind": "verb",
+          "position": 0,
+          "definition_target": "to learn about something by reading, going to school, etc.",
+          "definition_aux": "（教科などを）勉強する、研究する",
+          "ipa": "/ˈstʌdi/",
+          "surfaces": [
+            { "text": "study", "form_kind": "verb_base", "ipa": "/ˈstʌdi/" },
+            { "text": "studies", "form_kind": "verb_third_person_singular", "ipa": null },
+            { "text": "studying", "form_kind": "verb_present_participle", "ipa": null },
+            { "text": "studied", "form_kind": "verb_past", "ipa": null },
+            { "text": "studied", "form_kind": "verb_past_participle", "ipa": null }
+          ]
+        }
       ]
     },
     {
       "stable_lemma_id": "b2e3f4d5-6c7b-4890-b9de-f12345678901",
       "lemma": "happy",
-      "pos": "adjective",
       "language": "en",
-      "definition_target": "feeling or showing pleasure.",
-      "definition_aux": "幸せな、うれしい",
-      "surfaces": [
-        { "text": "happy", "form_kind": "adj_positive", "ipa": "/ˈhæpi/" },
-        { "text": "happier", "form_kind": "adj_comparative", "ipa": null },
-        { "text": "happiest", "form_kind": "adj_superlative", "ipa": null }
+      "usages": [
+        {
+          "kind": "adjective",
+          "position": 0,
+          "definition_target": "feeling or showing pleasure.",
+          "definition_aux": "幸せな、うれしい",
+          "ipa": "/ˈhæpi/",
+          "surfaces": [
+            { "text": "happy", "form_kind": "adj_positive", "ipa": "/ˈhæpi/" },
+            { "text": "happier", "form_kind": "adj_comparative", "ipa": null },
+            { "text": "happiest", "form_kind": "adj_superlative", "ipa": null }
+          ]
+        }
       ]
     },
     {
       "stable_lemma_id": "c3f4e5d6-7d8c-4912-bcde-012345678901",
       "lemma": "book",
-      "pos": "noun",
       "language": "en",
-      "definition_target": "a set of printed pages fastened together inside a cover.",
-      "definition_aux": "本、書籍",
-      "surfaces": [
-        { "text": "book", "form_kind": "noun_singular", "ipa": "/bʊk/" },
-        { "text": "books", "form_kind": "noun_plural", "ipa": null }
+      "usages": [
+        {
+          "kind": "noun",
+          "position": 0,
+          "definition_target": "a set of printed pages fastened together inside a cover.",
+          "definition_aux": "本、書籍",
+          "ipa": "/bʊk/",
+          "surfaces": [
+            { "text": "book", "form_kind": "noun_singular", "ipa": "/bʊk/" },
+            { "text": "books", "form_kind": "noun_plural", "ipa": null }
+          ]
+        }
       ]
     },
     {
       "stable_lemma_id": "e7f8a9b0-1c2d-4789-b012-aaaaaaaa0001",
       "lemma": "carry on",
-      "pos": "phrasal_verb",
       "language": "en",
-      "definition_target": "to continue doing something.",
-      "definition_aux": "続ける、やり続ける",
-      "surfaces": [
-        { "text": "carry on", "form_kind": "verb_base", "ipa": null },
-        { "text": "carries on", "form_kind": "verb_third_person_singular", "ipa": null },
-        { "text": "carrying on", "form_kind": "verb_present_participle", "ipa": null },
-        { "text": "carried on", "form_kind": "verb_past", "ipa": null },
-        { "text": "carried on", "form_kind": "verb_past_participle", "ipa": null }
+      "usages": [
+        {
+          "kind": "phrasal_verb",
+          "position": 0,
+          "definition_target": "to continue doing something.",
+          "definition_aux": "続ける、やり続ける",
+          "ipa": null,
+          "surfaces": [
+            { "text": "carry on", "form_kind": "verb_base", "ipa": null },
+            { "text": "carries on", "form_kind": "verb_third_person_singular", "ipa": null },
+            { "text": "carrying on", "form_kind": "verb_present_participle", "ipa": null },
+            { "text": "carried on", "form_kind": "verb_past", "ipa": null },
+            { "text": "carried on", "form_kind": "verb_past_participle", "ipa": null }
+          ]
+        }
       ]
     },
     {
       "stable_lemma_id": "d4e5f6a7-b8c9-4123-d456-7890abcd0001",
       "lemma": "allocate",
-      "pos": "verb",
       "language": "en",
-      "definition_target": "to give something officially to someone for a particular purpose.",
-      "definition_aux": "（資源などを）割り当てる、配分する",
-      "participle_adj_definition_target": "given or assigned for a particular purpose.",
-      "participle_adj_definition_aux": "（予算などが）割り当てられた、充当された",
-      "surfaces": [
-        { "text": "allocate", "form_kind": "verb_base", "ipa": "/ˈæləkeɪt/" },
-        { "text": "allocates", "form_kind": "verb_third_person_singular", "ipa": null },
-        { "text": "allocating", "form_kind": "verb_present_participle", "ipa": null },
-        { "text": "allocated", "form_kind": "verb_past", "ipa": null },
-        { "text": "allocated", "form_kind": "verb_past_participle", "ipa": null },
-        { "text": "allocated", "form_kind": "adj_positive", "ipa": "/ˈæləkeɪtɪd/" },
-        { "text": "more allocated", "form_kind": "adj_comparative", "ipa": null },
-        { "text": "most allocated", "form_kind": "adj_superlative", "ipa": null }
+      "usages": [
+        {
+          "kind": "verb",
+          "position": 0,
+          "definition_target": "to give something officially to someone for a particular purpose.",
+          "definition_aux": "（資源などを）割り当てる、配分する",
+          "ipa": "/ˈæləkeɪt/",
+          "surfaces": [
+            { "text": "allocate", "form_kind": "verb_base", "ipa": "/ˈæləkeɪt/" },
+            { "text": "allocates", "form_kind": "verb_third_person_singular", "ipa": null },
+            { "text": "allocating", "form_kind": "verb_present_participle", "ipa": null },
+            { "text": "allocated", "form_kind": "verb_past", "ipa": null },
+            { "text": "allocated", "form_kind": "verb_past_participle", "ipa": null }
+          ]
+        },
+        {
+          "kind": "adjective",
+          "position": 1,
+          "definition_target": "given or assigned for a particular purpose.",
+          "definition_aux": "（予算などが）割り当てられた、充当された",
+          "ipa": "/ˈæləkeɪtɪd/",
+          "surfaces": [
+            { "text": "allocated", "form_kind": "adj_positive", "ipa": "/ˈæləkeɪtɪd/" },
+            { "text": "more allocated", "form_kind": "adj_comparative", "ipa": null },
+            { "text": "most allocated", "form_kind": "adj_superlative", "ipa": null }
+          ]
+        }
       ]
     },
     {
       "stable_lemma_id": "d4e5f6a7-b8c9-4123-d456-7890abcd0003",
       "lemma": "procrastinate",
-      "pos": "verb",
       "language": "en",
-      "definition_target": "to delay doing something until later, often because you are lazy.",
-      "definition_aux": "先延ばしにする、ぐずぐずする",
-      "surfaces": [
-        { "text": "procrastinate", "form_kind": "verb_base", "ipa": "/prəˈkræstɪneɪt/" },
-        { "text": "procrastinates", "form_kind": "verb_third_person_singular", "ipa": null },
-        { "text": "procrastinating", "form_kind": "verb_present_participle", "ipa": null },
-        { "text": "procrastinated", "form_kind": "verb_past", "ipa": null },
-        { "text": "procrastinated", "form_kind": "verb_past_participle", "ipa": null }
+      "usages": [
+        {
+          "kind": "verb",
+          "position": 0,
+          "definition_target": "to delay doing something until later, often because you are lazy.",
+          "definition_aux": "先延ばしにする、ぐずぐずする",
+          "ipa": "/prəˈkræstɪneɪt/",
+          "surfaces": [
+            { "text": "procrastinate", "form_kind": "verb_base", "ipa": "/prəˈkræstɪneɪt/" },
+            { "text": "procrastinates", "form_kind": "verb_third_person_singular", "ipa": null },
+            { "text": "procrastinating", "form_kind": "verb_present_participle", "ipa": null },
+            { "text": "procrastinated", "form_kind": "verb_past", "ipa": null },
+            { "text": "procrastinated", "form_kind": "verb_past_participle", "ipa": null }
+          ]
+        }
       ]
     },
     {
       "stable_lemma_id": "d4e5f6a7-b8c9-4123-d456-7890abcd0004",
       "lemma": "eloquent",
-      "pos": "adjective",
       "language": "en",
-      "definition_target": "using language in a clear and effective way.",
-      "definition_aux": "雄弁な、説得力のある",
-      "surfaces": [
-        { "text": "eloquent", "form_kind": "adj_positive", "ipa": "/ˈeləkwənt/" },
-        { "text": "more eloquent", "form_kind": "adj_comparative", "ipa": null },
-        { "text": "most eloquent", "form_kind": "adj_superlative", "ipa": null }
+      "usages": [
+        {
+          "kind": "adjective",
+          "position": 0,
+          "definition_target": "using language in a clear and effective way.",
+          "definition_aux": "雄弁な、説得力のある",
+          "ipa": "/ˈeləkwənt/",
+          "surfaces": [
+            { "text": "eloquent", "form_kind": "adj_positive", "ipa": "/ˈeləkwənt/" },
+            { "text": "more eloquent", "form_kind": "adj_comparative", "ipa": null },
+            { "text": "most eloquent", "form_kind": "adj_superlative", "ipa": null }
+          ]
+        }
       ]
     }
   ]

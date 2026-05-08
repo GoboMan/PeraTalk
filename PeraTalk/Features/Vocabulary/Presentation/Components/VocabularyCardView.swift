@@ -2,7 +2,8 @@ import SwiftUI
 
 struct VocabularyCardView: View {
     let headword: String
-    var showPartOfSpeech: Bool = true
+    /// 単語一覧では `false` 固定（複数用法の代表品詞を決めない）。詳細など別画面から再利用するときのみ `true` にできる。
+    var showPartOfSpeech: Bool = false
     var kind: VocabularyKind?
     var japaneseDefinition: String?
     var englishDefinition: String?
@@ -13,7 +14,7 @@ struct VocabularyCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: density == .compact ? 2 : 4) {
-            // 辞書エントリと同様：見出しと品詞をベースライン揃えで同一行にまとめる。
+            // 見出しと（任意で）品詞バッジを同一行にまとめる。
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(headword)
                     .font(density == .compact ? .subheadline : .headline)

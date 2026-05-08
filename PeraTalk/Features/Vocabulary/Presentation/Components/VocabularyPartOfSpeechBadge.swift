@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 単語一覧・詳細（用法カード）で共通の品詞ラベル。
+/// 品詞ラベル（単語詳細の用法カードなど）。一覧カードでは表示しない。
 struct VocabularyPartOfSpeechBadge: View {
     var kind: VocabularyKind?
 

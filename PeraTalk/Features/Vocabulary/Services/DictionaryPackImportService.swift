@@ -6,6 +6,10 @@ enum DictionaryPackImportError: Error {
     case checksumMismatch
     case unknownSurfaceFormKind(String)
     case packKeyMismatch
+    case emptyLemmaUsages(lemma: String)
+    case invalidUsageKind(lemma: String, kind: String)
+    case duplicateUsageKind(lemma: String, kind: String)
+    case surfaceFormKindMismatch(lemma: String, usageKind: String, formKind: String)
 }
 
 // MARK: - DTOs（pack JSON / マニフェスト）
@@ -20,16 +24,17 @@ private struct DictionaryPackPayloadDTO: Decodable {
 private struct LemmaPackRowDTO: Decodable {
     let stableLemmaId: UUID
     let lemma: String
-    let pos: String
     let language: String?
-    let surfaces: [LemmaSurfacePackRowDTO]
-    /// 英語（ターゲット言語）側の短い定義。省略可。
+    let usages: [LemmaUsagePackRowDTO]
+}
+
+private struct LemmaUsagePackRowDTO: Decodable {
+    let kind: String
+    let position: Int
     let definitionTarget: String?
-    /// 補助言語側の短い定義。省略可。
     let definitionAux: String?
-    /// 動詞レマに `adj_*` を併記するときの、分詞形容詞の英語定義。省略可。
-    let participleAdjDefinitionTarget: String?
-    let participleAdjDefinitionAux: String?
+    let ipa: String?
+    let surfaces: [LemmaSurfacePackRowDTO]
 }
 
 private struct LemmaSurfacePackRowDTO: Decodable {
@@ -139,30 +144,66 @@ final class LiveDictionaryPackImportService: DictionaryPackImportServing {
 
     private func insertLemmas(from payload: DictionaryPackPayloadDTO, context: ModelContext) throws {
         for row in payload.lemmas {
-            for surface in row.surfaces {
-                guard LemmaSurfaceFormKind(rawValue: surface.formKind) != nil else {
-                    throw DictionaryPackImportError.unknownSurfaceFormKind(surface.formKind)
+            guard !row.usages.isEmpty else {
+                throw DictionaryPackImportError.emptyLemmaUsages(lemma: row.lemma)
+            }
+
+            let sortedPackUsages = row.usages.sorted { $0.position < $1.position }
+            var seenKinds = Set<String>()
+            for usageRow in sortedPackUsages {
+                guard let vocabularyKind = resolvedVocabularyKind(usageRow.kind) else {
+                    throw DictionaryPackImportError.invalidUsageKind(lemma: row.lemma, kind: usageRow.kind)
+                }
+                guard seenKinds.insert(vocabularyKind.rawValue).inserted else {
+                    throw DictionaryPackImportError.duplicateUsageKind(lemma: row.lemma, kind: usageRow.kind)
+                }
+                for surface in usageRow.surfaces {
+                    guard let formKind = LemmaSurfaceFormKind(rawValue: surface.formKind) else {
+                        throw DictionaryPackImportError.unknownSurfaceFormKind(surface.formKind)
+                    }
+                    guard formKind.isCompatible(withUsageKind: vocabularyKind) else {
+                        throw DictionaryPackImportError.surfaceFormKindMismatch(
+                            lemma: row.lemma,
+                            usageKind: usageRow.kind,
+                            formKind: surface.formKind
+                        )
+                    }
                 }
             }
 
             let lemma = CachedLemma(
                 stableLemmaId: row.stableLemmaId,
                 lemmaText: row.lemma,
-                posRaw: row.pos,
-                languageCode: row.language ?? "en",
-                definitionTarget: row.definitionTarget,
-                definitionAux: row.definitionAux,
-                participleAdjDefinitionTarget: row.participleAdjDefinitionTarget,
-                participleAdjDefinitionAux: row.participleAdjDefinitionAux
+                languageCode: row.language ?? "en"
             )
             context.insert(lemma)
 
-            for surface in row.surfaces {
-                let s = CachedLemmaSurface(text: surface.text, formKindRaw: surface.formKind, ipa: surface.ipa)
-                s.lemma = lemma
-                context.insert(s)
+            for usageRow in sortedPackUsages {
+                guard let vocabularyKind = resolvedVocabularyKind(usageRow.kind) else {
+                    throw DictionaryPackImportError.invalidUsageKind(lemma: row.lemma, kind: usageRow.kind)
+                }
+                let usage = CachedLemmaUsage(
+                    kind: vocabularyKind.rawValue,
+                    position: usageRow.position,
+                    definitionTarget: usageRow.definitionTarget,
+                    definitionAux: usageRow.definitionAux,
+                    ipa: usageRow.ipa
+                )
+                usage.lemma = lemma
+                context.insert(usage)
+
+                for surface in usageRow.surfaces {
+                    let s = CachedLemmaSurface(text: surface.text, formKindRaw: surface.formKind, ipa: surface.ipa)
+                    s.usage = usage
+                    context.insert(s)
+                }
             }
         }
+    }
+
+    private func resolvedVocabularyKind(_ raw: String) -> VocabularyKind? {
+        if let k = VocabularyKind(rawValue: raw) { return k }
+        return VocabularyKind(kindString: raw)
     }
 
     private func upsertPackMeta(

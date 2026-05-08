@@ -7,19 +7,11 @@ import Observation
 final class VocabularyListScreenModel {
     var searchQuery: String = ""
     var selectedTagId: UUID?
-    /// サーバー辞書パック同期後のユーザー向けメッセージ（成功・失敗）。
-    var remoteDictionaryPackBanner: String?
-    var isSyncingRemoteDictionaryPack = false
 
     private let deleteVocabularyUseCase: DeleteVocabularyUseCase
-    private let applyCatalogRemoteDictionaryPackUseCase: ApplyCatalogRemoteDictionaryPackUseCase?
 
-    init(
-        deleteVocabularyUseCase: DeleteVocabularyUseCase = DeleteVocabularyUseCase(vocabularyService: StubVocabularyService()),
-        applyCatalogRemoteDictionaryPackUseCase: ApplyCatalogRemoteDictionaryPackUseCase? = nil
-    ) {
+    init(deleteVocabularyUseCase: DeleteVocabularyUseCase = DeleteVocabularyUseCase(vocabularyService: StubVocabularyService())) {
         self.deleteVocabularyUseCase = deleteVocabularyUseCase
-        self.applyCatalogRemoteDictionaryPackUseCase = applyCatalogRemoteDictionaryPackUseCase
     }
 
     func filteredVocabularies(
@@ -75,31 +67,8 @@ final class VocabularyListScreenModel {
         try? await deleteVocabularyUseCase.execute(vocabulary: vocabulary)
     }
 
-    /// Supabase カタログ経由でリモート辞書パックを取得して SwiftData に適用する（`en_lemmas` 既定）。
-    func syncRemoteDictionaryPackFromCatalog(packKey: String = "en_lemmas", context: ModelContext) async {
-        remoteDictionaryPackBanner = nil
-        guard let useCase = applyCatalogRemoteDictionaryPackUseCase else {
-            remoteDictionaryPackBanner = "Supabase が未設定です。SUPABASE_URL / SUPABASE_PUBLISHABLE_KEY を確認してください。"
-            return
-        }
-        guard !isSyncingRemoteDictionaryPack else { return }
-        isSyncingRemoteDictionaryPack = true
-        defer { isSyncingRemoteDictionaryPack = false }
-        do {
-            try await useCase.execute(packKey: packKey, context: context)
-            remoteDictionaryPackBanner = "サーバーの辞書パックを適用しました。"
-        } catch let error as ApplyCatalogRemoteDictionaryPackError {
-            remoteDictionaryPackBanner = error.localizedDescription
-        } catch {
-            remoteDictionaryPackBanner = error.localizedDescription
-        }
-    }
-
     /// SwiftData を使う実行時構成。
-    static func live(
-        modelContext: ModelContext,
-        supabaseTableClient: (any SupabaseTableClient)?
-    ) -> VocabularyListScreenModel {
+    static func live(modelContext: ModelContext) -> VocabularyListScreenModel {
         let repository = SwiftDataVocabularyRepository(context: modelContext)
         let service = LiveVocabularyService(
             vocabularyRepository: repository,
@@ -109,18 +78,8 @@ final class VocabularyListScreenModel {
             lemmaLookupRepository: SwiftDataLemmaLookupRepository(context: modelContext)
         )
 
-        let catalogApply: ApplyCatalogRemoteDictionaryPackUseCase? = {
-            guard let tableClient = supabaseTableClient,
-                  let creds = SupabaseBundleCredentials.load(),
-                  let projectURL = URL(string: creds.supabaseURL)
-            else { return nil }
-            let catalog = LiveDictionaryPackCatalogService(supabaseURL: projectURL, tableClient: tableClient)
-            return ApplyCatalogRemoteDictionaryPackUseCase(catalogService: catalog)
-        }()
-
         return VocabularyListScreenModel(
-            deleteVocabularyUseCase: DeleteVocabularyUseCase(vocabularyService: service),
-            applyCatalogRemoteDictionaryPackUseCase: catalogApply
+            deleteVocabularyUseCase: DeleteVocabularyUseCase(vocabularyService: service)
         )
     }
 }
