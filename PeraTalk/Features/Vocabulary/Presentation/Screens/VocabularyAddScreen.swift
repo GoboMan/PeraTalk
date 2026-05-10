@@ -12,14 +12,16 @@ struct VocabularyAddScreen: View {
     @State private var model: VocabularyAddScreenModel?
 
     private let editVocabularyId: UUID?
+    private let preselectedTagId: UUID?
 
     private var nativeLanguage: AuxiliaryLanguage {
         guard let raw = profiles.first?.auxiliaryLanguage else { return .systemDefault }
         return AuxiliaryLanguage(rawValue: raw) ?? .japanese
     }
 
-    init(vocabularyId: UUID? = nil) {
+    init(vocabularyId: UUID? = nil, preselectedTagId: UUID? = nil) {
         self.editVocabularyId = vocabularyId
+        self.preselectedTagId = vocabularyId == nil ? preselectedTagId : nil
     }
 
     var body: some View {
@@ -32,7 +34,11 @@ struct VocabularyAddScreen: View {
         }
         .task {
             if model == nil {
-                model = VocabularyAddScreenModel.live(modelContext: modelContext)
+                let m = VocabularyAddScreenModel.live(modelContext: modelContext)
+                if let preselectedTagId {
+                    m.selectedTagIds.insert(preselectedTagId)
+                }
+                model = m
             }
             guard let editVocabularyId, let m = model else { return }
             if !m.isEditing {
@@ -143,36 +149,23 @@ private struct VocabularyAddLoadedContent: View {
 
     @ViewBuilder
     private var exampleTranslationWrappedRoot: some View {
-        let stack = VStack(spacing: 0) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    headwordSection
-
-                    if model.showLemmaSearchFlow,
-                       !model.useManualDictionaryBypass,
-                       model.linkedLemmaStableId == nil {
-                        lemmaCandidateSearchSection
-                    }
-
-                    if model.showDetailedEditor {
-                        ForEach(model.usages) { usage in
-                            usageEditingCard(usageId: usage.id)
-                                .id(usage.id)
-                        }
-
-                        addUsageKindFooter
-
-                        tagSelectionSection
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.top, 8)
-                .padding(.bottom, 100)
-            }
-            .onChange(of: model.headword) { _, _ in
-                model.scheduleLemmaCandidateRefresh()
+        let stack = List {
+            Section {
+                headwordSection
             }
 
+            lemmaSearchSectionIfNeeded()
+
+            detailedEditorSectionsIfNeeded()
+        }
+        .listStyle(.insetGrouped)
+        /// 連続した行で「品詞／定義」と例文エリアが一枚のカードに見えるよう行間隙間をなくす。
+        .listRowSpacing(0)
+        .scrollContentBackground(.visible)
+        .onChange(of: model.headword) { _, _ in
+            model.scheduleLemmaCandidateRefresh()
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
             saveButton
         }
 
@@ -186,6 +179,189 @@ private struct VocabularyAddLoadedContent: View {
                 }
         } else {
             stack
+        }
+    }
+
+    @ViewBuilder
+    private func lemmaSearchSectionIfNeeded() -> some View {
+        if model.showLemmaSearchFlow,
+           !model.useManualDictionaryBypass,
+           model.linkedLemmaStableId == nil,
+           !model.headword.trimmingCharacters(in: .whitespaces).isEmpty {
+            Section {
+                lemmaCandidateSearchSectionBody
+            }
+        }
+    }
+
+    /// `headword` 非空は `lemmaSearchSectionIfNeeded` で保証済み。
+    @ViewBuilder
+    private var lemmaCandidateSearchSectionBody: some View {
+        if model.isLemmaLookupPending {
+            HStack(spacing: 8) {
+                ProgressView()
+                Text("辞典を検索中…")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 4)
+        } else if model.lemmaSearchCandidates.isEmpty {
+            manualDictionaryEntryButton
+        } else {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("辞典から選ぶ")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                VStack(spacing: 8) {
+                    ForEach(model.lemmaSearchCandidates) { candidate in
+                        Button {
+                            Task { await model.selectLemmaCandidate(candidate) }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text(candidate.lemmaText)
+                                        .fontWeight(.medium)
+                                        .foregroundStyle(.primary)
+                                    Spacer(minLength: 8)
+                                    if let kind = VocabularyKind(rawValue: candidate.posRaw)
+                                        ?? VocabularyKind(kindString: candidate.posRaw) {
+                                        VocabularyPartOfSpeechCapsuleChip(kind: kind)
+                                    }
+                                }
+                                if let summary = candidate.multiKindSummary {
+                                    Text(summary)
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func detailedEditorSectionsIfNeeded() -> some View {
+        if model.showDetailedEditor {
+            ForEach(model.usages) { usage in
+                let usageId = usage.id
+                let removeTailRowCount = model.isLemmaDefinitionLocked ? 0 : 1
+
+                Section {
+                    usageDefinitionListRow(usageId: usageId)
+                        .listRowInsets(UsageExamplesSectionChrome.definitionRowInsets)
+                        .listRowSeparator(.hidden, edges: .bottom)
+                        .listRowBackground(UsageExamplesSectionChrome.definitionPlateBackground)
+
+                    usageExampleGroupedRows(
+                        usageId: usageId,
+                        chromeFooterRows: removeTailRowCount > 0
+                    )
+                }
+            }
+
+            Section {
+                addUsageKindFooter
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+            }
+
+            Section {
+                tagSelectionSection
+            }
+        }
+    }
+
+    // MARK: - 用法：一枚の語義カード（定義〜例文中身）／下に品詞削除
+
+    /// 詳細画面 `UsageCardView` と横方向を揃えたカード内余白。
+    private static let usageCardContentInsets = EdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16)
+
+    private enum UsageExamplesSectionChrome {
+        static let definitionRowInsets = usageCardContentInsets
+
+        static var definitionPlateBackground: some View {
+            UnevenRoundedRectangle(
+                cornerRadii: RectangleCornerRadii(topLeading: 12, bottomLeading: 0, bottomTrailing: 0, topTrailing: 12),
+                style: .continuous
+            )
+            .fill(Color(.systemBackground))
+        }
+
+        static let removeTailRowInsets = EdgeInsets(top: 10, leading: 16, bottom: 12, trailing: 16)
+
+        static var removeFooterPlateBackground: some View {
+            UnevenRoundedRectangle(
+                cornerRadii: RectangleCornerRadii(topLeading: 0, bottomLeading: 12, bottomTrailing: 12, topTrailing: 0),
+                style: .continuous
+            )
+            .fill(Color(.systemBackground))
+        }
+    }
+
+    /// 定義より下〜「例文を追加」まで：外周は単語詳細カードと同じ白地の続き。この中で例文のみ色付きスライスにする。
+    private enum UsageAddCardInteriorBodySlice {
+        /// 「例文」見出し行・各行のあいだ・削除フッター直前行は角丸なしで定義へつなぐ。
+        case plainBodyStripe
+        /// 品詞削除が無く、この行が用法カード末尾のときだけ下外周を丸める。
+        case outerClosingBottomRounding
+    }
+
+    private func usageAddExampleBlockRowInsets(
+        isFirstInnerRow: Bool,
+        exampleExtraTailPadding: CGFloat,
+        usesAdditionalInnerTopInset: Bool
+    ) -> EdgeInsets {
+        let baseLeading = Self.usageCardContentInsets.leading
+        let baseTrailing = Self.usageCardContentInsets.trailing
+        let innerTopBump: CGFloat = usesAdditionalInnerTopInset ? 10 : 0
+        if isFirstInnerRow {
+            /// 定義との境目では余白のみ（角丸は上位の白い定義行側のみ）。
+            return EdgeInsets(
+                top: 10 + innerTopBump,
+                leading: baseLeading,
+                bottom: 8 + exampleExtraTailPadding,
+                trailing: baseTrailing
+            )
+        }
+        return EdgeInsets(
+            top: 8 + innerTopBump,
+            leading: baseLeading,
+            bottom: 8 + exampleExtraTailPadding,
+            trailing: baseTrailing
+        )
+    }
+
+    @ViewBuilder
+    private func usageAddCardInteriorBodyBackground(slice: UsageAddCardInteriorBodySlice) -> some View {
+        switch slice {
+        case .plainBodyStripe:
+            Rectangle()
+                .fill(Color(.systemBackground))
+        case .outerClosingBottomRounding:
+            UnevenRoundedRectangle(
+                cornerRadii: RectangleCornerRadii(topLeading: 0, bottomLeading: 12, bottomTrailing: 12, topTrailing: 0),
+                style: .continuous
+            )
+            .fill(Color(.systemBackground))
+        }
+    }
+
+    /// 一覧 `List` 内・用法ごとの定義ヘッダ行。
+    private func usageDefinitionListRow(usageId: UUID) -> some View {
+        let usage = usageBinding(for: usageId)
+        return Group {
+            if model.isLemmaDefinitionLocked {
+                lemmaLinkedDefinitionBody(usage: usage, vocabularyHeadword: model.headword)
+            } else {
+                customDefinitionBlock(usage: usage, vocabularyHeadword: model.headword)
+            }
         }
     }
 
@@ -324,8 +500,7 @@ private struct VocabularyAddLoadedContent: View {
                     Spacer()
                     Button {
                         Task {
-                            let tagItems = tags.map { TagPickerItem(remoteId: $0.remoteId, name: $0.name) }
-                            await model.generateDraft(tagItems: tagItems, nativeLanguage: nativeLanguage)
+                            await model.generateDraft(nativeLanguage: nativeLanguage)
                         }
                     } label: {
                         HStack(spacing: 6) {
@@ -369,67 +544,10 @@ private struct VocabularyAddLoadedContent: View {
         .tint(.blue)
     }
 
-    @ViewBuilder
-    private var lemmaCandidateSearchSection: some View {
-        let query = model.headword.trimmingCharacters(in: .whitespaces)
-        if !query.isEmpty {
-            if model.isLemmaLookupPending {
-                HStack(spacing: 8) {
-                    ProgressView()
-                    Text("辞典を検索中…")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            } else if model.lemmaSearchCandidates.isEmpty {
-                manualDictionaryEntryButton
-            } else {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("辞典から選ぶ")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    VStack(spacing: 8) {
-                        ForEach(model.lemmaSearchCandidates) { candidate in
-                            Button {
-                                Task { await model.selectLemmaCandidate(candidate) }
-                            } label: {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Text(candidate.lemmaText)
-                                            .fontWeight(.medium)
-                                            .foregroundStyle(.primary)
-                                        Spacer(minLength: 8)
-                                        if let kind = VocabularyKind(rawValue: candidate.posRaw)
-                                            ?? VocabularyKind(kindString: candidate.posRaw) {
-                                            Text(kind.displayName)
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                    }
-                                    if let summary = candidate.multiKindSummary {
-                                        Text(summary)
-                                            .font(.caption2)
-                                            .foregroundStyle(.tertiary)
-                                    }
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 10)
-                            }
-                            .buttonStyle(.bordered)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // MARK: - Usage cards
-
     private var addUsageKindFooter: some View {
         Menu {
             ForEach(model.availableKinds, id: \.self) { kind in
-                Button(kind.displayName) {
+                Button(kind.englishLabel) {
                     model.addUsage(kind: kind)
                 }
             }
@@ -447,52 +565,33 @@ private struct VocabularyAddLoadedContent: View {
         .disabled(model.availableKinds.isEmpty || model.isLemmaDefinitionLocked)
     }
 
-    private func usageEditingCard(usageId: UUID) -> some View {
-        let usage = usageBinding(for: usageId)
-        return VStack(alignment: .leading, spacing: 16) {
-            if model.isLemmaDefinitionLocked {
-                lemmaLinkedDefinitionBody(usage: usage)
-            } else {
-                customDefinitionBlock(usage: usage)
-            }
+    // MARK: - Usage & examples（親 `List` の行単位）
 
-            Divider()
-                .opacity(0.45)
-
-            usageExamplesContent(usageId: usageId)
-
-            if !model.isLemmaDefinitionLocked {
-                removeUsageButton(usageId: usageId)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(.systemGray4), lineWidth: 1)
-        )
-    }
-
-    private func lemmaLinkedDefinitionBody(usage: Binding<UsageFormData>) -> some View {
+    private func lemmaLinkedDefinitionBody(usage: Binding<UsageFormData>, vocabularyHeadword: String) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
-                Text(usage.kind.wrappedValue.displayName)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .foregroundStyle(.white)
-                    .background(Capsule().fill(Color.teal))
+                VocabularyPartOfSpeechCapsuleChip(kind: usage.kind.wrappedValue)
 
-                if !usage.ipa.wrappedValue.trimmingCharacters(in: .whitespaces).isEmpty {
+                if !usage.ipa.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Text(usage.ipa.wrappedValue)
                         .font(.subheadline)
-                        .foregroundStyle(.teal)
+                        .foregroundStyle(usage.kind.wrappedValue.badgeColor)
                 }
             }
 
-            let auxText = usage.definitionAux.wrappedValue.trimmingCharacters(in: .whitespaces)
-            let targetText = usage.definitionTarget.wrappedValue.trimmingCharacters(in: .whitespaces)
+            let parentTrim = vocabularyHeadword.trimmingCharacters(in: .whitespacesAndNewlines)
+            let studyTrim = usage.studyHeadword.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            let studyDisplay = studyTrim.isEmpty ? parentTrim : studyTrim
+            if !studyDisplay.isEmpty {
+                Text(studyDisplay)
+                    .font(.title3)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            let auxText = usage.definitionAux.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            let targetText = usage.definitionTarget.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines)
 
             if !auxText.isEmpty {
                 Text(auxText)
@@ -514,22 +613,17 @@ private struct VocabularyAddLoadedContent: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func customDefinitionBlock(usage: Binding<UsageFormData>) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
+    private func customDefinitionBlock(usage: Binding<UsageFormData>, vocabularyHeadword: String) -> some View {
+        let parentTrim = vocabularyHeadword.trimmingCharacters(in: .whitespacesAndNewlines)
+        return VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 10) {
-                Text(usage.kind.wrappedValue.displayName)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .foregroundStyle(.white)
-                    .background(Capsule().fill(Color.teal))
+                VocabularyPartOfSpeechCapsuleChip(kind: usage.kind.wrappedValue)
 
-                let ipaTrim = usage.ipa.wrappedValue.trimmingCharacters(in: .whitespaces)
+                let ipaTrim = usage.ipa.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !ipaTrim.isEmpty {
                     Text(ipaTrim)
                         .font(.subheadline)
-                        .foregroundStyle(.teal)
+                        .foregroundStyle(usage.kind.wrappedValue.badgeColor)
                 }
             }
 
@@ -539,7 +633,7 @@ private struct VocabularyAddLoadedContent: View {
                     .foregroundStyle(.secondary)
                 Text(Self.ipaDisplayText(usage.ipa.wrappedValue))
                     .font(.body)
-                    .foregroundStyle(usage.ipa.wrappedValue.trimmingCharacters(in: .whitespaces).isEmpty ? .tertiary : .primary)
+                    .foregroundStyle(usage.ipa.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .tertiary : .primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(10)
                     .background(
@@ -563,6 +657,21 @@ private struct VocabularyAddLoadedContent: View {
                 TextField("英語の定義を入力", text: usage.definitionTarget)
                     .textFieldStyle(.roundedBorder)
             }
+
+            DisclosureGroup {
+                VStack(alignment: .leading, spacing: 8) {
+                    TextField("例：allocated と見出しが違うとき", text: usage.studyHeadword)
+                        .textFieldStyle(.roundedBorder)
+                    Text(parentTrim.isEmpty ? "リスト見出しと同じなら不要です。" : "空にするとリスト見出し「\(parentTrim)」を使います。")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.top, 4)
+            } label: {
+                Text("この用法の単語（任意）")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -572,38 +681,71 @@ private struct VocabularyAddLoadedContent: View {
         return t
     }
 
-    private func usageExamplesContent(usageId: UUID) -> some View {
+    @ViewBuilder
+    private func usageExampleGroupedRows(
+        usageId: UUID,
+        chromeFooterRows: Bool
+    ) -> some View {
         let examples = model.usages.first(where: { $0.id == usageId })?.examples ?? []
-        return VStack(alignment: .leading, spacing: 12) {
-            ForEach(Array(examples.enumerated()), id: \.element.id) { number, example in
-                exampleEditingRow(
-                    usageId: usageId,
-                    exampleId: example.id,
-                    number: number + 1,
-                    canDelete: examples.count > 1
-                )
-            }
 
-            Button {
-                model.addExample(to: usageId)
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "plus")
-                    Text("例文を追加")
-                }
-                .font(.subheadline)
-                .foregroundStyle(.blue)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color(.systemGray4), lineWidth: 1)
+        ForEach(Array(examples.enumerated()), id: \.element.id) { offset, example in
+            let isLastExample = offset == examples.count - 1
+            exampleEditingRowNoSwipe(usageId: usageId, exampleId: example.id, number: offset + 1)
+                .padding(10)
+                .background(Color.teal.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .contentShape(Rectangle())
+                .listRowInsets(
+                    usageAddExampleBlockRowInsets(
+                        isFirstInnerRow: false,
+                        exampleExtraTailPadding: isLastExample ? 6 : 0,
+                        usesAdditionalInnerTopInset: false
+                    )
                 )
+                .listRowSeparator(.hidden)
+                .listRowBackground(usageAddCardInteriorBodyBackground(slice: .plainBodyStripe))
+                .accessibilityHint("左へスワイプしてこの例文を削除できます")
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                            model.removeExample(from: usageId, exampleId: example.id)
+                        }
+                    } label: {
+                        Label("削除", systemImage: "trash")
+                    }
+                }
+        }
+
+        let addOuterSlice: UsageAddCardInteriorBodySlice = chromeFooterRows ? .plainBodyStripe : .outerClosingBottomRounding
+        Button {
+            model.addExample(to: usageId)
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "plus")
+                Text("例文を追加")
             }
+            .font(.subheadline)
+            .foregroundStyle(.blue)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+        }
+        .buttonStyle(.plain)
+        .listRowInsets(
+            usageAddExampleBlockRowInsets(isFirstInnerRow: false, exampleExtraTailPadding: 0, usesAdditionalInnerTopInset: examples.isEmpty)
+        )
+        .listRowSeparator(.hidden)
+        .listRowBackground(usageAddCardInteriorBodyBackground(slice: addOuterSlice))
+
+        if chromeFooterRows {
+            removeUsageButton(usageId: usageId)
+                .buttonStyle(.plain)
+                .listRowInsets(UsageExamplesSectionChrome.removeTailRowInsets)
+                .listRowSeparator(.hidden)
+                .listRowBackground(UsageExamplesSectionChrome.removeFooterPlateBackground)
         }
     }
 
-    private func exampleEditingRow(usageId: UUID, exampleId: UUID, number: Int, canDelete: Bool) -> some View {
+    private func exampleEditingRowNoSwipe(usageId: UUID, exampleId: UUID, number: Int) -> some View {
         let example = exampleBinding(usageId: usageId, exampleId: exampleId)
         let isGeneratingThis = model.generatingExampleIds.contains(exampleId)
 
@@ -642,27 +784,27 @@ private struct VocabularyAddLoadedContent: View {
                 )
             }
 
-            Text("英文")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            TextEditor(text: example.sentence)
-                .frame(minHeight: 60)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color(.systemGray4), lineWidth: 1)
-                )
+            VStack(alignment: .leading, spacing: 6) {
+                Text("英文入力欄")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+                TextEditor(text: example.sentence)
+                    .font(.body)
+                    .frame(minHeight: 72)
+                    .scrollContentBackground(.hidden)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 11, style: .continuous)
+                            .fill(Color(.systemBackground))
+                    )
+                    .accessibilityLabel("例文 \(number) の英文入力欄")
+            }
 
             exampleSentenceTranslationAttachment(exampleId: exampleId)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .contextMenu {
-            if canDelete {
-                Button("削除", role: .destructive) {
-                    model.removeExample(from: usageId, exampleId: exampleId)
-                }
-            }
-        }
     }
 
     @ViewBuilder
@@ -770,9 +912,22 @@ private struct VocabularyAddLoadedContent: View {
     }
 }
 
+private extension EdgeInsets {
+    func adding(additionalTop: CGFloat = 0, additionalBottom: CGFloat = 0) -> EdgeInsets {
+        EdgeInsets(
+            top: top + additionalTop,
+            leading: leading,
+            bottom: bottom + additionalBottom,
+            trailing: trailing
+        )
+    }
+}
+
+#if targetEnvironment(simulator)
 #Preview {
     NavigationStack {
         VocabularyAddScreen()
     }
     .modelContainer(previewContainer)
 }
+#endif

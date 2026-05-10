@@ -7,18 +7,25 @@ private struct GenerableExampleOnlyDraft {
     var usageGroups: [GenerableExampleUsageGroup]
 }
 
-@Generable(description: "Examples for one part of speech")
+@Generable(description: "Examples for one part of speech slot; when the prompt gives an English sense or gloss under this slot, only generate sentences matching that intended meaning.")
 private struct GenerableExampleUsageGroup {
     @Guide(description: "One of: noun, verb, adjective, adverb, preposition, conjunction, pronoun, interjection, phrasal_verb, idiom")
     var kind: String
 
-    @Guide(description: "Natural English example sentences", .count(3))
+    @Guide(
+        description:
+            "Exactly three FULL English sentences—not single words—with the prompt's Embedding spelling for this group's slot used verbatim plus its POS rule—never a different homograph or substitute base lemma spelling.",
+        .count(3),
+    )
     var examples: [GenerableExampleSentence]
 }
 
 @Generable(description: "Example sentence")
 private struct GenerableExampleSentence {
-    @Guide(description: "Natural English sentence, plain text only")
+    @Guide(
+        description:
+            "One COMPLETE natural English sentence; plain text without ** bold markers; include the Embedding spelling from the matching slot verbatim (capitalization at sentence start allowed)—correct POS only; avoid substituted lemmas.",
+    )
     var sentenceTarget: String
 }
 

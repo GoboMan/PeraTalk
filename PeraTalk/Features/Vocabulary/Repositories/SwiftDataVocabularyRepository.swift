@@ -118,6 +118,8 @@ struct SwiftDataVocabularyRepository: VocabularyRepository {
             usage.ipa = usageForm.ipa.isEmpty ? nil : usageForm.ipa
             usage.definitionAux = usageForm.definitionAux.isEmpty ? nil : usageForm.definitionAux
             usage.definitionTarget = usageForm.definitionTarget.isEmpty ? nil : usageForm.definitionTarget
+            let trimmedStudy = usageForm.studyHeadword.trimmingCharacters(in: .whitespacesAndNewlines)
+            usage.studyHeadword = trimmedStudy.isEmpty ? nil : trimmedStudy
             usage.vocabulary = vocabulary
             context.insert(usage)
 

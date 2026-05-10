@@ -34,6 +34,8 @@ private struct LemmaUsagePackRowDTO: Decodable {
     let definitionTarget: String?
     let definitionAux: String?
     let ipa: String?
+    /// 省略可：用法別の代表的綴り。無ければ surfaces 規則で自動。
+    let studyHeadword: String?
     let surfaces: [LemmaSurfacePackRowDTO]
 }
 
@@ -197,6 +199,13 @@ final class LiveDictionaryPackImportService: DictionaryPackImportServing {
                     s.usage = usage
                     context.insert(s)
                 }
+
+                usage.studyHeadword = LemmaStudyEmbeddingText.studyHeadwordForPackImport(
+                    explicitPack: usageRow.studyHeadword,
+                    vocabularyKind: vocabularyKind,
+                    surfaces: usage.surfaces,
+                    lemmaText: row.lemma
+                )
             }
         }
     }

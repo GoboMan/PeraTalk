@@ -54,6 +54,7 @@ struct PeraTalkApp: App {
             MainTabView()
                 .environment(\.supabaseClient, supabaseLiveKit?.client)
                 .environment(\.supabaseTableClient, supabaseLiveKit?.tableClient)
+                .environment(\.supabaseEdgeFunctionsClient, supabaseLiveKit?.edgeFunctionsClient)
         }
         .modelContainer(sharedModelContainer)
     }

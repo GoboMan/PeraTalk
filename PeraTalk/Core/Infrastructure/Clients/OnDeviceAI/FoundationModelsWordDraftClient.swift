@@ -27,7 +27,9 @@ struct GenerableUsage {
 
 @Generable(description: "Example sentence")
 struct GenerableExample {
-    @Guide(description: "Natural English sentence, plain text only")
+    @Guide(
+        description: "Natural English sentence: plain prose only — never asterisks for bold (**), never Markdown.",
+    )
     var sentenceTarget: String
 }
 

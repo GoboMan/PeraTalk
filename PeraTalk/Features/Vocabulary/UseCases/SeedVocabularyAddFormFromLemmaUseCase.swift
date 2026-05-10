@@ -47,11 +47,17 @@ private enum LemmaToVocabularyUsageLinesBuilder {
         let aux = usage.definitionAux?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let target = usage.definitionTarget?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
+        let studyFromUsage = usage.studyHeadword?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let study = studyFromUsage.isEmpty
+            ? (LemmaStudyEmbeddingText.embeddingText(for: kind, usage: usage) ?? "")
+            : studyFromUsage
+
         return VocabularyAddFormUsageLine(
             kind: kind,
             ipa: ipa,
             definitionAux: aux,
             definitionTarget: target,
+            studyHeadword: study,
             examples: [VocabularyAddFormExampleLine(sentence: "")]
         )
     }

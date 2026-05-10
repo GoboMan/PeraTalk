@@ -9,6 +9,8 @@ final class CachedVocabularyUsage {
     var definitionTarget: String?
     var definitionAux: String?
     var ipa: String?
+    /// 例文 AI 等で嵌める代表的英語綴り（`CachedVocabulary.headword` と異なり得る）。空／nil は親見出しにフォールバック。
+    var studyHeadword: String?
     var position: Int
     var dirty: Bool
     var tombstone: Bool
@@ -29,6 +31,7 @@ final class CachedVocabularyUsage {
         self.definitionTarget = nil
         self.definitionAux = nil
         self.ipa = nil
+        self.studyHeadword = nil
         self.position = position
         self.dirty = dirty
         self.tombstone = tombstone

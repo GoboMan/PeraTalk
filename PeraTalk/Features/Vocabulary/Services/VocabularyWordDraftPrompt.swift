@@ -1,6 +1,6 @@
 import Foundation
 
-/// 単語帳ドラフト生成向けのプロンプト文言。期待する出力の意味（ルール・言語・タグ制約）はここで定義し、
+/// 単語帳ドラフト生成向けのプロンプト文言。期待する出力の意味（ルール・言語）はここで定義し、
 /// `OnDeviceWordDraftClient` は「指示文 + ユーザメッセージ」を渡して構造化応答を得るだけにする。
 enum VocabularyWordDraftPrompt {
     static func systemInstructions(nativeLanguage: AuxiliaryLanguage) -> String {
@@ -17,14 +17,16 @@ enum VocabularyWordDraftPrompt {
         if !verbRule.isEmpty {
             rules.append("For verb definitionAux: \(verbRule)")
         }
-        rules.append(contentsOf: [
-            "Example sentences must be natural plain English.",
-            "suggestedTags: pick from the available tags only.",
-        ])
+        rules.append(
+            "Example sentences must be natural plain English; never emphasize the vocabulary word with paired asterisk stars or other markdown."
+        )
         return rules.joined(separator: " ")
     }
 
     static func userPrompt(headword: String, availableTags: [String]) -> String {
+        if availableTags.isEmpty {
+            return "Word: \(headword)"
+        }
         let tagsText = availableTags.joined(separator: ", ")
         return "Word: \(headword)\nAvailable tags: \(tagsText)"
     }

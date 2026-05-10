@@ -10,14 +10,13 @@ struct GenerateVocabularyAddFormDraftUseCase {
 
     func execute(
         headword: String,
-        nativeLanguage: AuxiliaryLanguage,
-        tags: [TagPickerItem]
+        nativeLanguage: AuxiliaryLanguage
     ) async throws -> VocabularyAddFormPayload {
         let word = headword.trimmingCharacters(in: .whitespaces)
         let draft = try await vocabularyService.generateWordDraft(
             headword: word,
             nativeLanguage: nativeLanguage,
-            availableTags: tags.map(\.name)
+            availableTags: []
         )
         let ipa = vocabularyService.lookupIPA(for: word) ?? ""
 
@@ -30,21 +29,15 @@ struct GenerateVocabularyAddFormDraftUseCase {
                 ipa: ipa,
                 definitionAux: usage.definitionAux ?? "",
                 definitionTarget: usage.definitionTarget,
+                studyHeadword: word,
                 examples: examples
             )
-        }
-
-        var selectedTagIds = Set<UUID>()
-        for suggestedName in draft.suggestedTags {
-            if let tag = tags.first(where: { $0.name.lowercased() == suggestedName.lowercased() }) {
-                selectedTagIds.insert(tag.remoteId)
-            }
         }
 
         return VocabularyAddFormPayload(
             headword: word,
             usages: usageLines,
-            selectedTagRemoteIds: selectedTagIds,
+            selectedTagRemoteIds: [],
             editingVocabularyRemoteId: nil,
             linkedLemmaStableId: nil,
             linkedAdjunctLemmaStableId: nil

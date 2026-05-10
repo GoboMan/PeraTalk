@@ -133,6 +133,14 @@ struct SeedDataService {
                 usage.ipa = ipa
                 usage.definitionTarget = defTarget
                 usage.definitionAux = defAux
+                if headword == "allocate", kind == "adjective" {
+                    usage.studyHeadword = "allocated"
+                } else if headword == "allocate", kind == "verb" {
+                    usage.studyHeadword = "allocate"
+                } else {
+                    let h = headword.trimmingCharacters(in: .whitespacesAndNewlines)
+                    usage.studyHeadword = h.isEmpty ? nil : h
+                }
                 usage.vocabulary = vocab
                 context.insert(usage)
 

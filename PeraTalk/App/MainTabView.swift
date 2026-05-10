@@ -23,7 +23,9 @@ struct MainTabView: View {
     }
 }
 
+#if targetEnvironment(simulator)
 #Preview {
     MainTabView()
         .modelContainer(previewContainer)
 }
+#endif

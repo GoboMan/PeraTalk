@@ -9,6 +9,10 @@ private enum SupabaseTableClientEnvironmentKey: EnvironmentKey {
     static let defaultValue: (any SupabaseTableClient)? = nil
 }
 
+private enum SupabaseEdgeFunctionsClientEnvironmentKey: EnvironmentKey {
+    static let defaultValue: (any SupabaseEdgeFunctionsClient)? = nil
+}
+
 extension EnvironmentValues {
     var supabaseClient: SupabaseClient? {
         get { self[SupabaseClientEnvironmentKey.self] }
@@ -18,5 +22,10 @@ extension EnvironmentValues {
     var supabaseTableClient: (any SupabaseTableClient)? {
         get { self[SupabaseTableClientEnvironmentKey.self] }
         set { self[SupabaseTableClientEnvironmentKey.self] = newValue }
+    }
+
+    var supabaseEdgeFunctionsClient: (any SupabaseEdgeFunctionsClient)? {
+        get { self[SupabaseEdgeFunctionsClientEnvironmentKey.self] }
+        set { self[SupabaseEdgeFunctionsClientEnvironmentKey.self] = newValue }
     }
 }

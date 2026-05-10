@@ -4,7 +4,8 @@ import SwiftData
 enum VocabularyRoute: Hashable {
     /// 一覧で表示中だった順序と、開く単語の ID（横スワイプで `sequence` 内を移動）。
     case detail(sequence: [UUID], currentId: UUID)
-    case add
+    /// 一覧でタグフィルタ中に追加した場合、そのタグを既定で選択する。
+    case add(preselectedTagId: UUID?)
     case edit(UUID)
 }
 
@@ -52,8 +53,8 @@ struct VocabularyListScreen: View {
                         path: $path,
                         recallObfuscationModeEnabled: $vocabularyRecallObfuscationModeEnabled
                     )
-                case .add:
-                    VocabularyAddScreen()
+                case .add(let preselectedTagId):
+                    VocabularyAddScreen(preselectedTagId: preselectedTagId)
                 case .edit(let id):
                     VocabularyAddScreen(vocabularyId: id)
                 }
@@ -104,27 +105,66 @@ struct VocabularyListScreen: View {
     }
 
     private var vocabularyListSection: some View {
-        let sequence = filteredVocabularies.map(\.remoteId)
-        return LazyVStack(spacing: vocabularyPreferences.listDensity == .compact ? 6 : 12) {
-            ForEach(filteredVocabularies, id: \.remoteId) { vocabulary in
-                let usage = model.firstUsage(of: vocabulary)
-                NavigationLink(value: VocabularyRoute.detail(sequence: sequence, currentId: vocabulary.remoteId)) {
-                    // 一覧は複数用法がある語で「どの品詞を代表表示するか」が決めにくいため、品詞バッジは出さない（詳細で用法ごとに表示）。
-                    VocabularyCardView(
-                        headword: vocabulary.headword,
-                        showPartOfSpeech: false,
-                        kind: nil,
-                        japaneseDefinition: vocabularyPreferences.showJapaneseDefinition
-                            ? usage.flatMap { vocabulary.resolvedDefinitionAux(for: $0) } : nil,
-                        englishDefinition: vocabularyPreferences.showEnglishDefinition
-                            ? usage.flatMap { vocabulary.resolvedDefinitionTarget(for: $0) } : nil,
-                        ipa: vocabularyPreferences.showPronunciation ? usage?.ipa : nil,
-                        density: vocabularyPreferences.listDensity
-                    )
+        let items = filteredVocabularies
+        let sequence = items.map(\.remoteId)
+        return Group {
+            if items.isEmpty {
+                vocabularyEmptyState
+            } else {
+                LazyVStack(spacing: vocabularyPreferences.listDensity == .compact ? 6 : 12) {
+                    ForEach(items, id: \.remoteId) { vocabulary in
+                        let usage = model.firstUsage(of: vocabulary)
+                        NavigationLink(value: VocabularyRoute.detail(sequence: sequence, currentId: vocabulary.remoteId)) {
+                            // 一覧は複数用法がある語で「どの品詞を代表表示するか」が決めにくいため、品詞バッジは出さない（詳細で用法ごとに表示）。
+                            VocabularyCardView(
+                                headword: vocabulary.headword,
+                                showPartOfSpeech: false,
+                                kind: nil,
+                                japaneseDefinition: vocabularyPreferences.showJapaneseDefinition
+                                    ? usage.flatMap { vocabulary.resolvedDefinitionAux(for: $0) } : nil,
+                                englishDefinition: vocabularyPreferences.showEnglishDefinition
+                                    ? usage.flatMap { vocabulary.resolvedDefinitionTarget(for: $0) } : nil,
+                                ipa: vocabularyPreferences.showPronunciation ? usage?.ipa : nil,
+                                density: vocabularyPreferences.listDensity
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .buttonStyle(.plain)
             }
         }
+    }
+
+    private var vocabularyEmptyState: some View {
+        Button {
+            path.append(VocabularyRoute.add(preselectedTagId: model.selectedTagId))
+        } label: {
+            VStack(spacing: 12) {
+                Image(systemName: "text.book.closed")
+                    .font(.system(size: 44))
+                    .foregroundStyle(Color.accentColor.opacity(0.7))
+                Text("No Vocabulary")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Text("追加")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(Color.accentColor)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 40)
+            .padding(.horizontal, 20)
+            .background {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.accentColor.opacity(0.14))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.accentColor.opacity(0.45), lineWidth: 1)
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(VocabularyEmptyAddButtonStyle())
+        .accessibilityLabel("No Vocabulary、単語を追加")
     }
 
     // MARK: - Add Menu
@@ -132,7 +172,7 @@ struct VocabularyListScreen: View {
     private var addMenu: some View {
         Menu {
             Button("単語を追加") {
-                path.append(VocabularyRoute.add)
+                path.append(VocabularyRoute.add(preselectedTagId: model.selectedTagId))
             }
             Button("タグを追加") {
                 newTagName = ""
@@ -152,7 +192,17 @@ struct VocabularyListScreen: View {
     }
 }
 
+private struct VocabularyEmptyAddButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.88 : 1)
+            .scaleEffect(configuration.isPressed ? 0.985 : 1)
+    }
+}
+
+#if targetEnvironment(simulator)
 #Preview {
     VocabularyListScreen()
         .modelContainer(previewContainer)
 }
+#endif

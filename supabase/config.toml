@@ -382,3 +382,19 @@ s3_region = "env(S3_REGION)"
 s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
+
+# Edge Functions — JWT 検証はエンドポイントごと（[データベース設計-サーバー] の経路に対応）
+[functions.apple-s2s]
+verify_jwt = false
+
+[functions.storekit-verify]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true
+
+[functions.memory-ingest]
+verify_jwt = true
+
+[functions.data-retention]
+verify_jwt = false

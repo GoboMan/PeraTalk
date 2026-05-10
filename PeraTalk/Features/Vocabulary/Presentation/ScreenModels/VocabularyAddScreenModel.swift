@@ -141,9 +141,10 @@ final class VocabularyAddScreenModel {
     }
 
     func makePayload() -> VocabularyAddFormPayload {
-        VocabularyAddFormPayload(
-            headword: headword.trimmingCharacters(in: .whitespaces),
-            usages: Self.usageLines(from: usages),
+        let trimmedHead = headword.trimmingCharacters(in: .whitespacesAndNewlines)
+        return VocabularyAddFormPayload(
+            headword: trimmedHead,
+            usages: Self.usageLines(from: usages, parentHeadword: trimmedHead),
             selectedTagRemoteIds: selectedTagIds,
             editingVocabularyRemoteId: editingVocabularyId,
             linkedLemmaStableId: linkedLemmaStableId,
@@ -262,6 +263,7 @@ final class VocabularyAddScreenModel {
     }
 
     func removeExample(from usageId: UUID, exampleId: UUID) {
+        generatingExampleIds.remove(exampleId)
         guard let index = usages.firstIndex(where: { $0.id == usageId }) else { return }
         usages[index].examples.removeAll { $0.id == exampleId }
     }
@@ -274,7 +276,7 @@ final class VocabularyAddScreenModel {
         }
     }
 
-    func generateDraft(tagItems: [TagPickerItem], nativeLanguage: AuxiliaryLanguage) async {
+    func generateDraft(nativeLanguage: AuxiliaryLanguage) async {
         guard allowsFullWordAIDraft else { return }
         guard generatingExampleIds.isEmpty else { return }
         let word = headword.trimmingCharacters(in: .whitespaces)
@@ -287,8 +289,7 @@ final class VocabularyAddScreenModel {
         do {
             let payload = try await generateDraftUseCase.execute(
                 headword: headword,
-                nativeLanguage: nativeLanguage,
-                tags: tagItems
+                nativeLanguage: nativeLanguage
             )
             applyAIDraft(payload)
         } catch {
@@ -306,17 +307,32 @@ final class VocabularyAddScreenModel {
               let exampleIndex = usages[usageIndex].examples.firstIndex(where: { $0.id == exampleId })
         else { return }
 
-        let kind = usages[usageIndex].kind
-
         generatingExampleIds.insert(exampleId)
         defer { generatingExampleIds.remove(exampleId) }
 
         do {
-            guard let sentence = try await generateExampleDraftUseCase.firstExampleSentence(headword: word, usageKind: kind) else {
+            let trimmedHead = word
+            let usage = usages[usageIndex]
+            let studyTrimmed = usage.studyHeadword.trimmingCharacters(in: .whitespacesAndNewlines)
+            let effectiveStudy = studyTrimmed.isEmpty ? trimmedHead : studyTrimmed
+            let slot = VocabularyExampleDraftUsageSlot(
+                kind: usage.kind,
+                definitionAux: usage.definitionAux,
+                definitionTarget: usage.definitionTarget,
+                studyHeadword: effectiveStudy
+            )
+            guard let sentence = try await generateExampleDraftUseCase.firstExampleSentence(
+                headword: word,
+                linkedLemmaStableId: linkedLemmaStableId,
+                slot: slot
+            ) else {
                 generationError = "例文を生成できませんでした"
                 return
             }
-            usages[usageIndex].examples[exampleIndex].sentence = sentence
+            guard let uIdxAfter = usages.firstIndex(where: { $0.id == usageId }),
+                  let eIdxAfter = usages[uIdxAfter].examples.firstIndex(where: { $0.id == exampleId })
+            else { return }
+            usages[uIdxAfter].examples[eIdxAfter].sentence = sentence
         } catch {
             generationError = error.localizedDescription
         }
@@ -328,19 +344,23 @@ final class VocabularyAddScreenModel {
 
         headword = payload.headword
         usages = Self.usageFormData(from: payload.usages)
-        selectedTagIds = payload.selectedTagRemoteIds
+        // タグは UI のチップのみで選択（AI ドラフトでは上書きしない）
 
         linkedLemmaStableId = keepLemma
         linkedAdjunctLemmaStableId = keepAdjunct
     }
 
-    private static func usageLines(from usages: [UsageFormData]) -> [VocabularyAddFormUsageLine] {
-        usages.map { usage in
-            VocabularyAddFormUsageLine(
+    private static func usageLines(from usages: [UsageFormData], parentHeadword: String) -> [VocabularyAddFormUsageLine] {
+        let trimmedParent = parentHeadword.trimmingCharacters(in: .whitespacesAndNewlines)
+        return usages.map { usage in
+            let studyTrim = usage.studyHeadword.trimmingCharacters(in: .whitespacesAndNewlines)
+            let studyStored = studyTrim.isEmpty ? trimmedParent : studyTrim
+            return VocabularyAddFormUsageLine(
                 kind: usage.kind,
                 ipa: usage.ipa,
                 definitionAux: usage.definitionAux,
                 definitionTarget: usage.definitionTarget,
+                studyHeadword: studyStored,
                 examples: usage.examples.map {
                     VocabularyAddFormExampleLine(sentence: $0.sentence)
                 }
@@ -353,11 +373,13 @@ final class VocabularyAddScreenModel {
             let examples = line.examples.map {
                 ExampleFormData(sentence: $0.sentence)
             }
+            let study = line.studyHeadword.trimmingCharacters(in: .whitespacesAndNewlines)
             return UsageFormData(
                 kind: line.kind,
                 ipa: line.ipa,
                 definitionAux: line.definitionAux,
                 definitionTarget: line.definitionTarget,
+                studyHeadword: study,
                 examples: examples.isEmpty ? [ExampleFormData()] : examples
             )
         }

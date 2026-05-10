@@ -171,6 +171,8 @@ private struct PrivacyPolicyScreen: View {
     }
 }
 
+#if targetEnvironment(simulator)
 #Preview {
     SettingsScreen()
 }
+#endif

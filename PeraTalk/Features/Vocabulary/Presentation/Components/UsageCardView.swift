@@ -26,10 +26,15 @@ struct UsageCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if showsPartOfSpeechOrPronunciationRow {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    VocabularyPartOfSpeechBadge(kind: resolvedKind)
-
-                    if let ipa, !ipa.isEmpty {
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    if let resolvedKind {
+                        VocabularyPartOfSpeechCapsuleChip(kind: resolvedKind)
+                        if let ipa, !ipa.isEmpty {
+                            Text(ipa)
+                                .font(.subheadline)
+                                .foregroundStyle(resolvedKind.badgeColor)
+                        }
+                    } else if let ipa, !ipa.isEmpty {
                         Text(ipa)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)

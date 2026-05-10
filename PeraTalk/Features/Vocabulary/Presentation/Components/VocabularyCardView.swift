@@ -22,8 +22,8 @@ struct VocabularyCardView: View {
                     .lineLimit(2)
                     .layoutPriority(1)
 
-                if showPartOfSpeech {
-                    VocabularyPartOfSpeechBadge(kind: kind)
+                if showPartOfSpeech, let kind {
+                    VocabularyPartOfSpeechCapsuleChip(kind: kind)
                 }
 
                 Spacer(minLength: 0)

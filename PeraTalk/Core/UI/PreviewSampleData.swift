@@ -60,6 +60,7 @@ let previewContainer: ModelContainer = {
 
     let allocateVerb = CachedVocabularyUsage(kind: "verb", position: 0, dirty: false)
     allocateVerb.ipa = "/ˈæləkeɪt/"
+    allocateVerb.studyHeadword = "allocate"
     allocateVerb.definitionAux = "割り当てる、配分する"
     allocateVerb.definitionTarget = "to distribute resources or duties for a particular purpose"
     allocateVerb.vocabulary = allocate
@@ -75,6 +76,7 @@ let previewContainer: ModelContainer = {
 
     let allocateAdj = CachedVocabularyUsage(kind: "adjective", position: 1, dirty: false)
     allocateAdj.ipa = "/ˈæləkeɪtɪd/"
+    allocateAdj.studyHeadword = "allocated"
     allocateAdj.definitionAux = "割り当てられた"
     allocateAdj.definitionTarget = "designated or set apart for a specific purpose"
     allocateAdj.vocabulary = allocate

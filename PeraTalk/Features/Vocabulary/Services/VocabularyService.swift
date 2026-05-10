@@ -14,7 +14,14 @@ protocol VocabularyService {
         availableTags: [String]
     ) async throws -> WordDraft
     /// レマ結線など**定義を触らない**経路向け：用法ごとに例文のみ生成する。
-    func generateExampleOnlyDraft(headword: String, usageKinds: [VocabularyKind]) async throws -> WordExampleDraft
+    /// - Parameters:
+    ///   - headword: 画面・辞典の代表的見出し綴り（_allocate_ など）。プロンプトの辞書見出し行に使う。
+    ///   - linkedLemmaStableId: セットされていれば辞典 `surfaces` から用量ごとの Embedding 綴り（_allocated_ など）を解決する。
+    func generateExampleOnlyDraft(
+        headword: String,
+        linkedLemmaStableId: UUID?,
+        slots: [VocabularyExampleDraftUsageSlot]
+    ) async throws -> WordExampleDraft
     func lookupIPA(for headword: String) -> String?
 }
 
@@ -36,7 +43,7 @@ struct StubVocabularyService: VocabularyService {
         WordDraft(usages: [], suggestedTags: [])
     }
 
-    func generateExampleOnlyDraft(headword: String, usageKinds: [VocabularyKind]) async throws -> WordExampleDraft {
+    func generateExampleOnlyDraft(headword: String, linkedLemmaStableId: UUID?, slots: [VocabularyExampleDraftUsageSlot]) async throws -> WordExampleDraft {
         WordExampleDraft(groups: [])
     }
 
@@ -95,6 +102,8 @@ struct LiveVocabularyService: VocabularyService {
         let usage = CachedVocabularyUsage(kind: candidate.kind, position: 0)
         usage.definitionTarget = candidate.definitionTarget
         usage.definitionAux = candidate.definitionAux
+        let head = candidate.headword.trimmingCharacters(in: .whitespacesAndNewlines)
+        usage.studyHeadword = head.isEmpty ? nil : head
         usage.vocabulary = vocabulary
         try await vocabularyRepository.save(vocabulary)
     }
@@ -111,29 +120,78 @@ struct LiveVocabularyService: VocabularyService {
         return Self.normalizeWordDraft(raw)
     }
 
-    func generateExampleOnlyDraft(headword: String, usageKinds: [VocabularyKind]) async throws -> WordExampleDraft {
+    func generateExampleOnlyDraft(headword: String, linkedLemmaStableId: UUID?, slots: [VocabularyExampleDraftUsageSlot]) async throws -> WordExampleDraft {
         let trimmed = headword.trimmingCharacters(in: .whitespaces)
+        let resolved = slots.map { slot -> VocabularyWordExampleDraftPrompt.ResolvedExampleSlot in
+            let embedding = Self.resolveEmbeddingSpelling(
+                headline: trimmed,
+                slot: slot,
+                linkedLemmaStableId: linkedLemmaStableId,
+                lemmaLookupRepository: lemmaLookupRepository
+            )
+            return VocabularyWordExampleDraftPrompt.ResolvedExampleSlot(slot: slot, embeddingSpelling: embedding)
+        }
         let instructions = VocabularyWordExampleDraftPrompt.systemInstructions()
-        let prompt = VocabularyWordExampleDraftPrompt.userPrompt(headword: trimmed, usageKinds: usageKinds)
+        let prompt = VocabularyWordExampleDraftPrompt.userPrompt(dictionaryLemmaHeadline: trimmed, resolvedSlots: resolved)
         let raw = try await onDeviceExampleDraftClient.respond(systemInstructions: instructions, userPrompt: prompt)
-        return Self.normalizeExampleDraft(raw, expectedKinds: usageKinds)
+        return Self.normalizeExampleDraft(raw, expectedSlots: slots)
+    }
+
+    /// スロットの明示 `studyHeadword` →（空なら）辞典対応用法 → 画面見出し。
+    private static func resolveEmbeddingSpelling(
+        headline: String,
+        slot: VocabularyExampleDraftUsageSlot,
+        linkedLemmaStableId: UUID?,
+        lemmaLookupRepository: any LemmaLookupRepository
+    ) -> String {
+        let trimmedHead = headline.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedSlotStudy = slot.studyHeadword.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedSlotStudy.isEmpty {
+            return trimmedSlotStudy
+        }
+
+        if let lemmaId = linkedLemmaStableId,
+           let lemma = try? lemmaLookupRepository.fetchLemma(stableLemmaId: lemmaId),
+           let embedding = LemmaStudyEmbeddingText.embeddingText(for: slot.kind, in: lemma)?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !embedding.isEmpty {
+            return embedding
+        }
+        return trimmedHead
     }
 
     /// モデル出力を単語帳ドメインとして解釈可能な形に絞る（無効な kind の用法は落とす）。
     private static func normalizeWordDraft(_ draft: WordDraft) -> WordDraft {
         WordDraft(
-            usages: draft.usages.filter { VocabularyKind(rawValue: $0.kind) != nil },
+            usages: draft.usages.filter { VocabularyKind(rawValue: $0.kind) != nil }.map { usage in
+                WordDraftUsage(
+                    kind: usage.kind,
+                    definitionTarget: usage.definitionTarget,
+                    definitionAux: usage.definitionAux,
+                    ipa: usage.ipa,
+                    examples: usage.examples.map {
+                        WordDraftExample(
+                            sentenceTarget: VocabularyExampleSentenceSanitizer.strippingMarkdownBoldStars($0.sentenceTarget)
+                        )
+                    }
+                )
+            },
             suggestedTags: draft.suggestedTags
         )
     }
 
-    private static func normalizeExampleDraft(_ draft: WordExampleDraft, expectedKinds: [VocabularyKind]) -> WordExampleDraft {
+    private static func normalizeExampleDraft(_ draft: WordExampleDraft, expectedSlots: [VocabularyExampleDraftUsageSlot]) -> WordExampleDraft {
         let valid = draft.groups.filter { VocabularyKind(rawValue: $0.kind) != nil }
-        let groups: [WordExampleDraftGroup] = expectedKinds.enumerated().map { index, kind in
+        let groups: [WordExampleDraftGroup] = expectedSlots.enumerated().map { index, slot in
+            let kind = slot.kind
             if index < valid.count {
-                WordExampleDraftGroup(kind: kind.rawValue, examples: valid[index].examples)
+                let examples = valid[index].examples.map {
+                    WordDraftExample(
+                        sentenceTarget: VocabularyExampleSentenceSanitizer.strippingMarkdownBoldStars($0.sentenceTarget)
+                    )
+                }
+                return WordExampleDraftGroup(kind: kind.rawValue, examples: examples)
             } else {
-                WordExampleDraftGroup(kind: kind.rawValue, examples: [])
+                return WordExampleDraftGroup(kind: kind.rawValue, examples: [])
             }
         }
         return WordExampleDraft(groups: groups)
@@ -153,6 +211,7 @@ struct LiveVocabularyService: VocabularyService {
                 ipa: line.ipa,
                 definitionAux: pack.aux,
                 definitionTarget: pack.target,
+                studyHeadword: line.studyHeadword,
                 examples: line.examples
             )
         }

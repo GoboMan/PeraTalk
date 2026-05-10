@@ -5,6 +5,7 @@ enum SupabaseClientFactory {
     struct LiveKit: Sendable {
         let client: SupabaseClient
         let tableClient: LiveSupabaseTableClient
+        let edgeFunctionsClient: LiveSupabaseEdgeFunctionsClient
     }
 
     /// Bundle の `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` が揃っているときだけクライアントを生成する。
@@ -20,6 +21,7 @@ enum SupabaseClientFactory {
 
         let client = SupabaseClient(supabaseURL: url, supabaseKey: creds.publishableKey)
         let tableClient = LiveSupabaseTableClient(client: client)
-        return LiveKit(client: client, tableClient: tableClient)
+        let edgeFunctionsClient = LiveSupabaseEdgeFunctionsClient(functions: client.functions)
+        return LiveKit(client: client, tableClient: tableClient, edgeFunctionsClient: edgeFunctionsClient)
     }
 }

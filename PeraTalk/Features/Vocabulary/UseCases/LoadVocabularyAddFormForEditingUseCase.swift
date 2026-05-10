@@ -40,6 +40,7 @@ struct LoadVocabularyAddFormForEditingUseCase {
                 ipa: usage.ipa ?? "",
                 definitionAux: definitionAux,
                 definitionTarget: definitionTarget,
+                studyHeadword: usage.studyHeadword ?? "",
                 examples: examples
             )
         }
