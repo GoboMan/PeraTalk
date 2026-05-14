@@ -19,7 +19,13 @@ enum SupabaseClientFactory {
             return nil
         }
 
-        let client = SupabaseClient(supabaseURL: url, supabaseKey: creds.publishableKey)
+        let client = SupabaseClient(
+            supabaseURL: url,
+            supabaseKey: creds.publishableKey,
+            options: SupabaseClientOptions(
+                auth: SupabaseClientOptions.AuthOptions(redirectToURL: SupabaseOAuthRedirect.callbackURL)
+            )
+        )
         let tableClient = LiveSupabaseTableClient(client: client)
         let edgeFunctionsClient = LiveSupabaseEdgeFunctionsClient(functions: client.functions)
         return LiveKit(client: client, tableClient: tableClient, edgeFunctionsClient: edgeFunctionsClient)

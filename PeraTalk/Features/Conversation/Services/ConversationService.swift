@@ -12,15 +12,30 @@ protocol ConversationService {
         personaPrompt: String?,
         themeDescription: String?
     ) async throws -> String
+
+    /// BFF 経由のストリーム。テキストは追記デルタ。
+    func streamAssistantChat(
+        messages: [ChatMessage],
+        personaPrompt: String?,
+        themeDescription: String?
+    ) -> AsyncThrowingStream<String, Error>
+
+    func appendUtterance(to session: CachedSession, role: String, text: String) async throws
+
     func endSession(session: CachedSession, utterances: [ChatMessage]) async throws -> FeedbackResult
     func generateCandidates(utterances: [ChatMessage]) async throws -> [VocabularyCandidate]
+
     func speak(text: String, locale: String, gender: String?) async
+    func enqueueAssistantSpeechFragment(_ text: String, locale: String, gender: String?) async
+    func flushAssistantSpeech(locale: String, gender: String?) async
+    func cancelAssistantSpeechQueue()
 }
 
 // MARK: - Stub
 
 struct StubConversationService: ConversationService {
     nonisolated init() {}
+
     func fetchActivePersonas() async throws -> [CachedPersona] { [] }
     func fetchActiveThemes() async throws -> [CachedTheme] { [] }
 
@@ -36,8 +51,29 @@ struct StubConversationService: ConversationService {
         ""
     }
 
+    func streamAssistantChat(
+        messages: [ChatMessage],
+        personaPrompt: String?,
+        themeDescription: String?
+    ) -> AsyncThrowingStream<String, Error> {
+        _ = messages
+        _ = personaPrompt
+        _ = themeDescription
+        return AsyncThrowingStream<String, Error> { (continuation: AsyncThrowingStream<String, Error>.Continuation) in
+            continuation.finish()
+        }
+    }
+
+    func appendUtterance(to session: CachedSession, role: String, text: String) async throws {
+        _ = session
+        _ = role
+        _ = text
+    }
+
     func endSession(session: CachedSession, utterances: [ChatMessage]) async throws -> FeedbackResult {
-        FeedbackResult(
+        _ = session
+        _ = utterances
+        return FeedbackResult(
             grammarStrength: nil,
             grammarWeakness: nil,
             vocabularyStrength: nil,
@@ -47,10 +83,28 @@ struct StubConversationService: ConversationService {
     }
 
     func generateCandidates(utterances: [ChatMessage]) async throws -> [VocabularyCandidate] {
-        []
+        _ = utterances
+        return [] as [VocabularyCandidate]
     }
 
-    func speak(text: String, locale: String, gender: String?) async {}
+    func speak(text: String, locale: String, gender: String?) async {
+        _ = text
+        _ = locale
+        _ = gender
+    }
+
+    func enqueueAssistantSpeechFragment(_ text: String, locale: String, gender: String?) async {
+        _ = text
+        _ = locale
+        _ = gender
+    }
+
+    func flushAssistantSpeech(locale: String, gender: String?) async {
+        _ = locale
+        _ = gender
+    }
+
+    func cancelAssistantSpeechQueue() {}
 }
 
 // MARK: - Live
@@ -106,6 +160,22 @@ struct LiveConversationService: ConversationService {
         )
     }
 
+    func streamAssistantChat(
+        messages: [ChatMessage],
+        personaPrompt: String?,
+        themeDescription: String?
+    ) -> AsyncThrowingStream<String, Error> {
+        llmClient.chatStreaming(
+            messages: messages,
+            personaPrompt: personaPrompt,
+            themeDescription: themeDescription
+        )
+    }
+
+    func appendUtterance(to session: CachedSession, role: String, text: String) async throws {
+        try await sessionRepository.appendUtterance(to: session, role: role, text: text, occurredAt: Date())
+    }
+
     func endSession(session: CachedSession, utterances: [ChatMessage]) async throws -> FeedbackResult {
         session.endedAt = Date()
         session.dirty = true
@@ -119,5 +189,17 @@ struct LiveConversationService: ConversationService {
 
     func speak(text: String, locale: String, gender: String?) async {
         await ttsClient.speak(text: text, locale: locale, gender: gender)
+    }
+
+    func enqueueAssistantSpeechFragment(_ text: String, locale: String, gender: String?) async {
+        await ttsClient.enqueueFragment(text, locale: locale, gender: gender)
+    }
+
+    func flushAssistantSpeech(locale: String, gender: String?) async {
+        await ttsClient.flushPendingSpeech(locale: locale, gender: gender)
+    }
+
+    func cancelAssistantSpeechQueue() {
+        ttsClient.cancelQueuedSpeech()
     }
 }

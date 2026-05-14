@@ -370,7 +370,6 @@ struct VocabularyDetailScreen: View {
 
 }
 
-#if targetEnvironment(simulator)
 #Preview {
     @Previewable @State var path = NavigationPath()
     @Previewable @State var vocabularyRecallObfuscationModeEnabled = false
@@ -393,4 +392,3 @@ struct VocabularyDetailScreen: View {
     }
     .modelContainer(previewContainer)
 }
-#endif

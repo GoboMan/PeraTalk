@@ -200,9 +200,7 @@ private struct VocabularyEmptyAddButtonStyle: ButtonStyle {
     }
 }
 
-#if targetEnvironment(simulator)
 #Preview {
     VocabularyListScreen()
         .modelContainer(previewContainer)
 }
-#endif

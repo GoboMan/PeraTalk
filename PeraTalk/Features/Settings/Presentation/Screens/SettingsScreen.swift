@@ -4,6 +4,7 @@ import StoreKit
 
 struct SettingsScreen: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.authService) private var authService
     @Environment(\.requestReview) private var requestReview
     @State private var model: SettingsScreenModel?
 
@@ -109,7 +110,7 @@ struct SettingsScreen: View {
             .navigationTitle("設定")
             .task {
                 if model == nil {
-                    model = SettingsScreenModel.live(modelContext: modelContext)
+                    model = SettingsScreenModel.live(modelContext: modelContext, authService: authService)
                 }
                 await model?.loadProfile()
             }
@@ -118,16 +119,6 @@ struct SettingsScreen: View {
 }
 
 // MARK: - Placeholder Screens
-
-private struct AccountSettingsScreen: View {
-    var body: some View {
-        List {
-            Text("アカウント情報")
-        }
-        .navigationTitle("アカウント")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
 
 private struct PlanSettingsScreen: View {
     var body: some View {
@@ -171,8 +162,6 @@ private struct PrivacyPolicyScreen: View {
     }
 }
 
-#if targetEnvironment(simulator)
 #Preview {
     SettingsScreen()
 }
-#endif

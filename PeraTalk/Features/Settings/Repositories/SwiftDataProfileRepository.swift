@@ -45,6 +45,39 @@ struct SwiftDataProfileRepository: ProfileRepository {
     }
 
     func pull() async throws {
-        // TODO: リモート同期
+        // 会話・他タブ向けの広域 pull は未実装。ログイン直後の統合は mergeAuthenticatedRemoteProfile を使用。
+    }
+
+    func mergeAuthenticatedRemoteProfile(
+        authenticatedUserId: UUID,
+        displayName: String?,
+        auxiliaryLanguageFromRemote: String,
+        appearanceTheme: String?,
+        remoteUpdatedAt: Date
+    ) async throws -> CachedProfile {
+        let descriptor = FetchDescriptor<CachedProfile>()
+        if let existing = try context.fetch(descriptor).first {
+            existing.remoteId = authenticatedUserId
+
+            existing.displayName = displayName ?? existing.displayName
+            existing.appearanceTheme = appearanceTheme ?? existing.appearanceTheme
+
+            existing.remoteUpdatedAt = remoteUpdatedAt
+            existing.cachedAt = Date()
+
+            try context.save()
+            return existing
+        }
+
+        let inserted = CachedProfile(
+            remoteId: authenticatedUserId,
+            auxiliaryLanguage: auxiliaryLanguageFromRemote,
+            remoteUpdatedAt: remoteUpdatedAt
+        )
+        inserted.displayName = displayName
+        inserted.appearanceTheme = appearanceTheme
+        context.insert(inserted)
+        try context.save()
+        return inserted
     }
 }

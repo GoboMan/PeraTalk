@@ -1,4 +1,4 @@
-/** CORS と最小 JSON 応答。本体ロジックは未実装のスタブ用。 */
+/** CORS と最小 JSON 応答。*/
 
 export const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -19,4 +19,18 @@ export function jsonStub(): Response {
     status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+export function jsonProblem(
+  status: number,
+  code: string,
+  detail: string,
+): Response {
+  return new Response(
+    JSON.stringify({ type: "error", code, message: detail }),
+    {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    },
+  );
 }

@@ -5,9 +5,21 @@ import SwiftUI
 @main
 struct PeraTalkApp: App {
     private let supabaseLiveKit: SupabaseClientFactory.LiveKit?
+    private let liveAuthService: LiveSupabaseAuthService?
 
     init() {
-        supabaseLiveKit = SupabaseClientFactory.makeLiveKitIfConfigured()
+        let kit = SupabaseClientFactory.makeLiveKitIfConfigured()
+        supabaseLiveKit = kit
+        if let kit {
+            liveAuthService = LiveSupabaseAuthService(client: kit.client)
+        } else {
+            liveAuthService = nil
+        }
+    }
+
+    private var injectedAuthService: any AuthService {
+        if let liveAuthService { liveAuthService }
+        else { StubAuthService() }
     }
 
     var sharedModelContainer: ModelContainer = {
@@ -55,6 +67,10 @@ struct PeraTalkApp: App {
                 .environment(\.supabaseClient, supabaseLiveKit?.client)
                 .environment(\.supabaseTableClient, supabaseLiveKit?.tableClient)
                 .environment(\.supabaseEdgeFunctionsClient, supabaseLiveKit?.edgeFunctionsClient)
+                .environment(\.authService, injectedAuthService)
+                .onOpenURL { url in
+                    supabaseLiveKit?.client.handle(url)
+                }
         }
         .modelContainer(sharedModelContainer)
     }

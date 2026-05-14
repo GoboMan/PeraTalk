@@ -58,7 +58,7 @@ final class SettingsScreenModel {
     }
 
     /// SwiftData を使う実行時構成（プロフィール）。サブスクは未実装のため Stub のまま。
-    static func live(modelContext: ModelContext) -> SettingsScreenModel {
+    static func live(modelContext: ModelContext, authService: any AuthService) -> SettingsScreenModel {
         let profileRepo = SwiftDataProfileRepository(context: modelContext)
         let settingsService = LiveSettingsService(
             profileRepository: profileRepo,
@@ -68,8 +68,8 @@ final class SettingsScreenModel {
             fetchProfileUseCase: FetchProfileUseCase(settingsService: settingsService),
             updateAuxiliaryLanguageUseCase: UpdateAuxiliaryLanguageUseCase(settingsService: settingsService),
             fetchSubscriptionUseCase: FetchSubscriptionUseCase(settingsService: settingsService),
-            signOutUseCase: SignOutUseCase(authService: StubAuthService()),
-            deleteAccountUseCase: DeleteAccountUseCase(authService: StubAuthService())
+            signOutUseCase: SignOutUseCase(authService: authService),
+            deleteAccountUseCase: DeleteAccountUseCase(authService: authService)
         )
     }
 }

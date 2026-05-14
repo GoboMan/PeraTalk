@@ -7,6 +7,14 @@ protocol ProfileRepository {
     func updateLanguage(_ language: AuxiliaryLanguage) async throws -> CachedProfile
     func updateScreenDisplayPreferences(_ preferences: ScreenDisplayPreferences) async throws -> CachedProfile
     func pull() async throws
+    /// ログイン済みユーザーの `profiles` 行をローカルへ取り込む。補助語と画面表示プリファレンスは既存ローカル値を優先する。
+    func mergeAuthenticatedRemoteProfile(
+        authenticatedUserId: UUID,
+        displayName: String?,
+        auxiliaryLanguageFromRemote: String,
+        appearanceTheme: String?,
+        remoteUpdatedAt: Date
+    ) async throws -> CachedProfile
 }
 
 struct StubProfileRepository: ProfileRepository {
@@ -23,4 +31,14 @@ struct StubProfileRepository: ProfileRepository {
     }
 
     func pull() async throws {}
+
+    func mergeAuthenticatedRemoteProfile(
+        authenticatedUserId: UUID,
+        displayName: String?,
+        auxiliaryLanguageFromRemote: String,
+        appearanceTheme: String?,
+        remoteUpdatedAt _: Date
+    ) async throws -> CachedProfile {
+        CachedProfile(remoteId: authenticatedUserId, auxiliaryLanguage: auxiliaryLanguageFromRemote)
+    }
 }

@@ -10,5 +10,6 @@ struct ContentView: View {
 #Preview {
     ContentView()
         .modelContainer(previewContainer)
+        .environment(\.authService, StubAuthService())
 }
 

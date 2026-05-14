@@ -235,7 +235,6 @@ struct VocabularyTabDisplaySettingsScreen: View {
 
 // MARK: - Previews
 
-#if targetEnvironment(simulator)
 #Preview("学習ログ") {
     NavigationStack {
         LearningLogDisplaySettingsScreen()
@@ -256,4 +255,3 @@ struct VocabularyTabDisplaySettingsScreen: View {
     }
     .modelContainer(previewContainer)
 }
-#endif

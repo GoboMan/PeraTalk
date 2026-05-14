@@ -923,11 +923,9 @@ private extension EdgeInsets {
     }
 }
 
-#if targetEnvironment(simulator)
 #Preview {
     NavigationStack {
         VocabularyAddScreen()
     }
     .modelContainer(previewContainer)
 }
-#endif

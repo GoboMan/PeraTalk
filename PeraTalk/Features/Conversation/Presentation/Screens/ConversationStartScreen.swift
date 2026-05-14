@@ -1,56 +1,203 @@
 import SwiftUI
 import SwiftData
+import Supabase
+
+private enum ConversationNavDestination: Hashable {
+    case session(UUID)
+}
 
 struct ConversationStartScreen: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.supabaseClient) private var supabaseClient
+    @Environment(\.authService) private var authService
+
     @Query private var profiles: [CachedProfile]
+    @State private var path = NavigationPath()
     @State private var model = ConversationStartScreenModel()
 
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 24) {
-                Text("SCR-CONV-START")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+    /// Supabase が有効かつログイン済みのときのみ Edge ストリームを利用する。
+    @State private var remoteConversationAvailable = false
 
-                Text("会話開始画面")
-                    .font(.title)
-
-                if showStartScreenGuide {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("モード選択:")
-                        Text("  ・Self（独り言）")
-                        Text("  ・AI 自由テーマ")
-                        Text("  ・AI テーマあり")
-
-                        Divider()
-
-                        Text("ペルソナ選択（6 体）:")
-                        Text("  US: Ethan / Chloe")
-                        Text("  GB: Oliver / Sophie")
-                        Text("  AU: Liam / Isla")
-
-                        Divider()
-
-                        Text("テーマ選択（テーマありモード時）")
-
-                        Divider()
-
-                        Text("「会話を始める」ボタン → セッション画面へ")
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    .background(.fill.tertiary)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-
-                Spacer()
-            }
-            .padding()
-            .navigationTitle("会話")
-        }
-    }
+    /// 英会話カードから開くセットアップシート
+    @State private var showEnglishConversationSheet = false
 
     private var showStartScreenGuide: Bool {
         profiles.first?.screenDisplayPreferencesOrDefault.conversation.showStartScreenGuide ?? true
+    }
+
+    var body: some View {
+        NavigationStack(path: $path) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 28) {
+                    hubHeaderStrip
+                        .padding(.top, 4)
+
+                    if supabaseClient != nil, !remoteConversationAvailable {
+                        cloudSignInHint
+                    }
+
+                    hubSection(title: "英会話") {
+                        hubCard(
+                            title: "パートナーと英会話",
+                            subtitle: "AI ペルソナとテーマを選んで、テキストで往復します。",
+                            systemImage: "bubble.left.and.bubble.right.fill"
+                        ) {
+                            model.prepareEnglishConversationDefaults()
+                            showEnglishConversationSheet = true
+                        }
+                    }
+
+                    hubSection(title: "独り言") {
+                        hubCard(
+                            title: "英語で独り言",
+                            subtitle: "AI の返答なしで、自分のペースで英語のアウトプット練習をします。",
+                            systemImage: "person.fill.questionmark"
+                        ) {
+                            Task { await launchSelfSoliloquyIfPossible() }
+                        }
+                    }
+
+                    if showStartScreenGuide {
+                        guidePanel
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 32)
+            }
+            .navigationTitle("会話")
+            .navigationBarTitleDisplayMode(.large)
+            .navigationDestination(for: ConversationNavDestination.self) { dest in
+                switch dest {
+                case .session(let sessionId):
+                    ConversationSessionScreen(sessionRemoteId: sessionId)
+                        .navigationBarTitleDisplayMode(.inline)
+                }
+            }
+            .sheet(isPresented: $showEnglishConversationSheet) {
+                EnglishConversationSetupSheet(model: model) { session in
+                    path.append(ConversationNavDestination.session(session.remoteId))
+                }
+                .presentationDetents([.large])
+                .presentationCornerRadius(24)
+            }
+        }
+        .task {
+            await authService.warmUpSessionMirror()
+            await refreshConversationBootstrap(authenticated: authService.isAuthenticated)
+            for await authenticated in authService.authSessionChanges() {
+                await refreshConversationBootstrap(authenticated: authenticated)
+            }
+        }
+    }
+
+    /// Supabase が有効でも未ログインのとき、クラウド会話が使えない理由を伝える。
+    private var cloudSignInHint: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("クラウド会話にサインイン")
+                .font(.headline)
+            Text("テキスト会話のストリーミングには Apple または Google でのサインインが必要です。設定の「アカウント」から続行できます。")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            NavigationLink {
+                AccountSettingsScreen()
+            } label: {
+                Text("アカウント設定を開く")
+                    .font(.subheadline.weight(.semibold))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private func refreshConversationBootstrap(authenticated: Bool) async {
+        let useEdge = supabaseClient != nil && authenticated
+        remoteConversationAvailable = useEdge
+        model = ConversationPresentationFactory.makeStartScreenModel(
+            modelContext: modelContext,
+            supabase: supabaseClient,
+            useEdgeAuthenticatedStream: useEdge
+        )
+        await model.loadPersonas()
+        await model.loadThemes()
+    }
+
+    /// 参考レイアウトの上部帯に相当する余白確保・簡易装飾（ストリーク等は製品未定のため未配置）。
+    private var hubHeaderStrip: some View {
+        HStack {
+            Spacer(minLength: 0)
+        }
+        .frame(height: 8)
+    }
+
+    private func hubSection<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.title3.weight(.bold))
+            content()
+        }
+    }
+
+    private func hubCard(title: String, subtitle: String, systemImage: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(alignment: .center, spacing: 16) {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color(.systemGray6))
+                    .frame(width: 76, height: 76)
+                    .overlay {
+                        Image(systemName: systemImage)
+                            .font(.system(size: 32))
+                            .foregroundStyle(Color.accentColor.opacity(0.85))
+                    }
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.leading)
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(18)
+            .background(Color(.systemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .shadow(color: .black.opacity(0.06), radius: 10, y: 6)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var guidePanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("開発・同期メモ（表示は設定で無効にできます）", systemImage: "info.circle.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            Text("英会話: AI と往復／独り言: LLM の会話応答なし。ペルソナは英会話で使用します。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func launchSelfSoliloquyIfPossible() async {
+        model.resetForSelfSoliloquy()
+        guard model.canStartSession else { return }
+        do {
+            let session = try await model.beginSession()
+            path.append(ConversationNavDestination.session(session.remoteId))
+        } catch {
+            path = NavigationPath()
+        }
     }
 }
