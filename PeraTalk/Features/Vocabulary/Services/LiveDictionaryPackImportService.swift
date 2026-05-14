@@ -2,16 +2,6 @@ import CryptoKit
 import Foundation
 import SwiftData
 
-enum DictionaryPackImportError: Error {
-    case checksumMismatch
-    case unknownSurfaceFormKind(String)
-    case packKeyMismatch
-    case emptyLemmaUsages(lemma: String)
-    case invalidUsageKind(lemma: String, kind: String)
-    case duplicateUsageKind(lemma: String, kind: String)
-    case surfaceFormKindMismatch(lemma: String, usageKind: String, formKind: String)
-}
-
 // MARK: - DTOs（pack JSON / マニフェスト）
 
 private struct DictionaryPackPayloadDTO: Decodable {
@@ -57,15 +47,6 @@ private struct RemotePackManifestDTO: Decodable {
         case sha256
         case packDownloadURL = "pack_download_url"
     }
-}
-
-// MARK: - Service
-
-protocol DictionaryPackImportServing {
-    /// バンドル内のサンプルパックを、`CachedLemma` が 0 件のときだけ投入する。
-    func importEmbeddedSampleIfNeeded(context: ModelContext) throws
-    /// マニフェスト URL → ペイロードダウンロード → SHA256 検証（指定時）→ 全レンマ差し替え。
-    func downloadAndApplyPack(manifestURL: URL, context: ModelContext) async throws
 }
 
 extension Data {
@@ -244,10 +225,4 @@ final class LiveDictionaryPackImportService: DictionaryPackImportServing {
         d.keyDecodingStrategy = .convertFromSnakeCase
         return d
     }
-}
-
-/// ユニットテストやスタブ用途：インメモリのみの no-op に近い挙動。
-struct StubDictionaryPackImportService: DictionaryPackImportServing {
-    func importEmbeddedSampleIfNeeded(context: ModelContext) throws {}
-    func downloadAndApplyPack(manifestURL: URL, context: ModelContext) async throws {}
 }
