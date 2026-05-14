@@ -1,22 +1,6 @@
 import Foundation
 import SwiftData
 
-enum ApplyCatalogRemoteDictionaryPackError: Error {
-    case catalogEntryNotFound(packKey: String)
-    case invalidManifestURL
-}
-
-extension ApplyCatalogRemoteDictionaryPackError: LocalizedError {
-    var errorDescription: String? {
-        switch self {
-        case .catalogEntryNotFound(let packKey):
-            return "辞書パック「\(packKey)」がサーバーカタログにありません。"
-        case .invalidManifestURL:
-            return "マニフェスト URL が不正です。"
-        }
-    }
-}
-
 /// `dictionary_pack_catalog` の `manifest_path` から公開マニフェスト URL を解決し、ペイロードを取得して適用する。
 struct ApplyCatalogRemoteDictionaryPackUseCase {
     private let catalogService: any DictionaryPackCatalogServing
