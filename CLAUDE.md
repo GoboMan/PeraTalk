@@ -64,11 +64,44 @@
 
 ---
 
-## 5. ファイル粒度（アーキテクチャ文書 3.4）
+## 5. ファイル粒度（アーキテクチャ文書 3.4 を厳格化）
 
-- **1 ファイル 1 責務**。
-- **UseCase は必ず 1 ファイル 1 型**とする。ファイル名は **型名と一致**（例：`GenerateVocabularyAddFormDraftUseCase.swift`）。`*UseCases.swift` に複数の UseCase をまとめない。
-- **200〜400 行を上限の目安**。超える場合は **UseCase 以外の単位**で型の抽出・Repository／Service 分離を検討し、単一ファイルの肥大化を増やさない。
+**最重要ルール: 1 ファイル 1 トップレベル型 を必須**とする。UseCase に限らず、`class` / `struct` / `enum` / `protocol` / `actor` のいずれも、1 ファイルあたり 1 つだけ定義する。ファイル名は **そのトップレベル型の名前と完全一致**させる（拡張子除く）。
+
+- **1 ファイル 1 責務 = 1 ファイル 1 トップレベル型**。
+- **集合ファイル禁止**: `*UseCases.swift` / `*Models.swift` / `*Types.swift` / `*Helpers.swift` のような複数型を束ねるファイル名・実体を**新規追加してはならない**。既存があれば §5b の例外に該当しない限り分割する。
+- **200〜400 行を上限の目安**。超える場合は型の抽出・Repository／Service 分離を検討する。
+
+### 5b. 同居が許される唯一の例外
+
+以下のみ、同じファイル内に複数の型が存在することを許す。それ以外の同居（Error 型・DTO・Stub 実装の同居など）は**すべて NG**。
+
+1. **ネスト型** — `extension Foo { struct Bar }`、`Foo.State` など、親型に文法的にネストされたもの
+2. **`fileprivate` / `private` なヘルパー型** — 同ファイル外から見えないもの
+3. **protocol への準拠を加えるだけの `extension`** — その型の宣言ファイルと同居 OK
+4. **SwiftUI の `EnvironmentKey` 集約** — `private enum *EnvironmentKey: EnvironmentKey` と関連する `EnvironmentValues` extension は同一ファイルに集約してよい（SwiftUI 慣習）
+
+### 5c. 命名規則（ファイル名 ↔ 型名のマッピング）
+
+| ファイル名 | 型 | 配置場所 |
+|---|---|---|
+| `FooScreen.swift` | `struct FooScreen: View` | `Features/*/Presentation/Screens/` |
+| `FooScreenModel.swift` | `@Observable final class FooScreenModel` | `Features/*/Presentation/ScreenModels/` |
+| `FooUseCase.swift` | `struct FooUseCase` | `Features/*/UseCases/` |
+| `FooService.swift` | `protocol FooService` | `Features/*/Services/` |
+| `LiveFooService.swift` | `struct LiveFooService: FooService` | 同上 |
+| `StubFooService.swift` | `struct StubFooService: FooService` | 同上 |
+| `FooRepository.swift` | `protocol FooRepository` | `Features/*/Repositories/` |
+| `SwiftDataFooRepository.swift` | `struct/class SwiftDataFooRepository: FooRepository` | 同上 |
+| `StubFooRepository.swift` | `struct StubFooRepository: FooRepository` | 同上 |
+| `FooClient.swift` | `protocol FooClient` | `Core/Infrastructure/Clients/<category>/` |
+| `<Vendor>FooClient.swift` | `struct <Vendor>FooClient: FooClient`（例: `FoundationModelsWordDraftClient`） | 同上 |
+| `StubFooClient.swift` | `struct StubFooClient: FooClient` | 同上 |
+| `Foo.swift` | DTO / Domain 値型 `struct Foo` | feature の `Domain/`・`Models/`、共有なら `Core/Domain/` |
+| `FooError.swift` | `enum FooError: Error` | 関連する型と同じディレクトリ |
+| `Foo+Bar.swift` | `extension Foo`（他型への準拠追加・分離extension） | 関連する型と同じディレクトリ |
+
+**重要**: Service / Repository / Client は **3 ファイル分割が原則**（protocol / Live / Stub）。protocol ファイルに Live や Stub を同居させない。protocol 専用の付随型（戻り値 DTO・Error）も同居させず別ファイルに切る。
 
 ---
 
@@ -77,6 +110,7 @@
 - 境界には **役割が名前から分かる `protocol`** を置く（例：`ConversationService`、`VocabularyRepository`、`LLMClient`）。
   **オンデバイス AI** は用途ごとにポートを分ける（例：単語ドラフトは `OnDeviceWordDraftClient`。別用途は別 protocol を追加し実装を共有）。
 - 新規は既存 Feature 配下の **`Services/`・`Repositories/`・`UseCases/`** および `Core/Infrastructure` の置き場所・命名に **合わせる**。
+- protocol 定義ファイルには **その protocol のみ** を置く。実装（Live/Stub）と付随型（DTO/Error）は §5c のマッピングに従い別ファイルに切る。
 
 ---
 
@@ -103,9 +137,11 @@
 1. 変更したコードは **どの層か** を言語化できる（Presentation / UseCase / Service / Domain / Infrastructure）。
 2. UseCase に **具象 I/O 型** が漏れていない（**UseCase は Service のみ**を見ている）。
 3. 新しい「画面操作の入口」が **散在していない**（`@Observable` に寄っている）。
-4. **UseCase が 1 ファイル 1 型**になっている。`*UseCases.swift` のような集合ファイルを増やしていない。
-5. ファイルが **責務過多・行数過多** になっていない。
-6. SSOT で参照されるデータ意味論は **Repository／Service／UseCase 内部**で吸収し、View にドメインの例外をべた書きしていない。
+4. **すべてのトップレベル型が 1 ファイル 1 型**になっている。ファイル名と型名が一致している。`*UseCases.swift` / `*Models.swift` / `*Types.swift` などの集合ファイルを増やしていない（§5）。
+5. Service / Repository / Client は **protocol / Live / Stub の 3 ファイル分割**になっている。protocol ファイルに実装や DTO/Error が同居していない（§5c）。
+6. 同居しているトップレベル型は §5b の 4 例外（ネスト型／private ヘルパー／protocol 準拠 extension／EnvironmentKey 集約）のいずれかに該当する。
+7. ファイルが **責務過多・行数過多** になっていない。
+8. SSOT で参照されるデータ意味論は **Repository／Service／UseCase 内部**で吸収し、View にドメインの例外をべた書きしていない。
 
 ---
 
