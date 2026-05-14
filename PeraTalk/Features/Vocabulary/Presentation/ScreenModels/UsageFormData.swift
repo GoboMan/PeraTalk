@@ -10,8 +10,3 @@ struct UsageFormData: Identifiable {
     var studyHeadword: String = ""
     var examples: [ExampleFormData] = [ExampleFormData()]
 }
-
-struct ExampleFormData: Identifiable {
-    let id = UUID()
-    var sentence: String = ""
-}
