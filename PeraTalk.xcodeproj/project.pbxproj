@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		8528AC022FACE7D200C7EA29 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = B20000022FA7000100349A01 /* Supabase */; };
-		856891AF2FB21E9400A3FA78 /* temp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 856891AE2FB21E9100A3FA78 /* temp.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -29,7 +28,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		856891AE2FB21E9100A3FA78 /* temp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = temp.swift; sourceTree = "<group>"; };
 		85C1976C2FA5B2950098CFD0 /* PeraTalk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PeraTalk.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		85C1977B2FA5B2970098CFD0 /* PeraTalkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PeraTalkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		85C197852FA5B2970098CFD0 /* PeraTalkUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PeraTalkUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -108,7 +106,6 @@
 		85C197632FA5B2950098CFD0 = {
 			isa = PBXGroup;
 			children = (
-				856891AE2FB21E9100A3FA78 /* temp.swift */,
 				A10000002FA6000100349A01 /* Config */,
 				85C1976E2FA5B2950098CFD0 /* PeraTalk */,
 				85C1977E2FA5B2970098CFD0 /* PeraTalkTests */,
@@ -284,7 +281,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				856891AF2FB21E9400A3FA78 /* temp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
