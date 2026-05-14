@@ -9,20 +9,3 @@ protocol OnDeviceWordDraftClient {
     /// プロンプトの組み立てや出力のビジネス正規化は呼び出し側（例: `VocabularyService`）の責務。
     func respond(systemInstructions: String, userPrompt: String) async throws -> WordDraft
 }
-
-struct WordDraft {
-    let usages: [WordDraftUsage]
-    let suggestedTags: [String]
-}
-
-struct WordDraftUsage {
-    let kind: String
-    let definitionTarget: String
-    let definitionAux: String?
-    let ipa: String?
-    let examples: [WordDraftExample]
-}
-
-struct WordDraftExample {
-    let sentenceTarget: String
-}

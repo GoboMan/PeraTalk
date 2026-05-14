@@ -6,13 +6,3 @@ protocol OnDeviceVocabularyExampleDraftClient {
 
     func respond(systemInstructions: String, userPrompt: String) async throws -> WordExampleDraft
 }
-
-/// 用法スロットごとの例文グループ（`VocabularyKind` 名と順序で対応付ける）。
-struct WordExampleDraft: Sendable {
-    let groups: [WordExampleDraftGroup]
-}
-
-struct WordExampleDraftGroup: Sendable {
-    let kind: String
-    let examples: [WordDraftExample]
-}

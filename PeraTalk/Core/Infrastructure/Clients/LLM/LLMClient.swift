@@ -23,23 +23,3 @@ protocol LLMClient: Sendable {
         utterances: [ChatMessage]
     ) async throws -> [VocabularyCandidate]
 }
-
-struct ChatMessage {
-    let role: String
-    let text: String
-}
-
-struct FeedbackResult {
-    let grammarStrength: String?
-    let grammarWeakness: String?
-    let vocabularyStrength: String?
-    let vocabularyWeakness: String?
-    let rawText: String
-}
-
-struct VocabularyCandidate {
-    let headword: String
-    let kind: String
-    let definitionTarget: String?
-    let definitionAux: String?
-}

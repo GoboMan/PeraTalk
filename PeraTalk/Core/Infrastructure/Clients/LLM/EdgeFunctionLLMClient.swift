@@ -391,14 +391,3 @@ struct EdgeFunctionLLMClient: LLMClient, Sendable {
         }
     }
 }
-
-enum EdgeFunctionAuthError: Error {
-    case noAccessToken
-}
-
-enum EdgeFunctionUpstreamError: Error {
-    case invalidResponse
-    case notEventStreamBody
-    case httpStatus(Int, String)
-    case streamEnvelope(code: String?, message: String?)
-}
