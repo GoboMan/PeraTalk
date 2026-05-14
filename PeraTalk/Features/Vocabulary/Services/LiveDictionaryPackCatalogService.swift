@@ -1,11 +1,5 @@
 import Foundation
 
-protocol DictionaryPackCatalogServing {
-    func fetchEntry(packKey: String) async throws -> DictionaryPackCatalogEntry?
-    func fetchAllEntries() async throws -> [DictionaryPackCatalogEntry]
-    func publicManifestURL(manifestPath: String) -> URL?
-}
-
 /// PostgREST でカタログを読み、`dictionary-packs` 公開バケットのマニフェスト URL を組み立てる。
 final class LiveDictionaryPackCatalogService: DictionaryPackCatalogServing {
     private let supabaseURL: URL
