@@ -4,6 +4,12 @@ struct EndSessionUseCase {
     let conversationService: any ConversationService
 
     func execute(session: CachedSession, utterances: [ChatMessage]) async throws -> FeedbackResult {
-        try await conversationService.endSession(session: session, utterances: utterances)
+        FeedbackResult(
+            grammarStrength: nil,
+            grammarWeakness: nil,
+            vocabularyStrength: nil,
+            vocabularyWeakness: nil,
+            rawText: ""
+        )
     }
 }

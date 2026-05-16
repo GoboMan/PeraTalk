@@ -26,6 +26,13 @@ function geminiAccumulatedText(fragment: Record<string, unknown>): string {
   return parts.map((part) => (part?.text ?? "") as string).join("");
 }
 
+/** 開発用: Edge Function のシークレットに `GEMINI_CHAT_SKIP_AUTH=true` を置いたときだけ有効。本番では必ず未設定にすること。 */
+function envFlagTrue(raw: string | undefined): boolean {
+  if (raw == null) return false;
+  const v = raw.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
 function buildGeminiContents(messages: ChatMessageWire[]) {
   return messages.map((m) => {
     const normalized = (m.role || "user").toLowerCase();
@@ -49,31 +56,41 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return jsonProblem(401, "unauthorized", "Bearer token required");
+    const skipAuth = envFlagTrue(Deno.env.get("GEMINI_CHAT_SKIP_AUTH"));
+    if (skipAuth) {
+      console.warn(
+        "gemini-chat-stream: GEMINI_CHAT_SKIP_AUTH is set — auth checks skipped (development only)",
+      );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-    const geminiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!supabaseUrl || !supabaseAnonKey) {
-      return jsonProblem(500, "config", "SUPABASE credentials missing");
+    if (!skipAuth) {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return jsonProblem(401, "unauthorized", "Bearer token required");
+      }
+
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+      if (!supabaseUrl || !supabaseAnonKey) {
+        return jsonProblem(500, "config", "SUPABASE credentials missing");
+      }
+
+      const sb = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+
+      const { data: authData, error: authErr } = await sb.auth.getUser(
+        authHeader.replace("Bearer ", "").trim(),
+      );
+
+      if (authErr || !authData?.user?.id) {
+        return jsonProblem(401, "unauthorized", "Invalid session");
+      }
     }
+
+    const geminiKey = Deno.env.get("GEMINI_API_KEY");
     if (!geminiKey) {
       return jsonProblem(500, "config", "GEMINI_API_KEY missing");
-    }
-
-    const sb = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const { data: authData, error: authErr } = await sb.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
-
-    if (authErr || !authData?.user?.id) {
-      return jsonProblem(401, "unauthorized", "Invalid session");
     }
 
     const parsed = (await req.json()) as RequestBodyWire;

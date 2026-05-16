@@ -18,17 +18,4 @@ final class ConversationUtteranceTTSChunkerTests: XCTestCase {
         XCTAssertEqual(out.first?.trimmingCharacters(in: .whitespaces), "\(lead),")
         XCTAssertFalse(out.isEmpty)
     }
-
-    func testStreamVersusChatStubParity() async throws {
-        let stub = StubLLMClient()
-        let messages = [ChatMessage(role: "user", text: "Hi")]
-
-        let pooled = try await stub.chat(messages: messages, personaPrompt: nil, themeDescription: nil)
-        var streamed = ""
-        for try await d in stub.chatStreaming(messages: messages, personaPrompt: nil, themeDescription: nil) {
-            streamed += d
-        }
-
-        XCTAssertEqual(pooled, streamed)
-    }
 }

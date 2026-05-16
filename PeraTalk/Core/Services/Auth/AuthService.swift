@@ -15,7 +15,6 @@ protocol AuthService {
     func signUp(email: String, password: String) async throws
     func signIn(email: String, password: String) async throws
     func signInWithApple(idToken: String, nonce: String?) async throws
-    func signInWithGoogleOAuth() async throws
     func signOut() async throws
     func deleteAccount() async throws
 }

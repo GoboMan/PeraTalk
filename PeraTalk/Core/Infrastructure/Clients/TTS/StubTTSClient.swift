@@ -1,6 +1,8 @@
 import Foundation
 
 struct StubTTSClient: TTSClient {
+    func warmUp() async throws {}
+
     func speak(text: String, locale: String, gender: String?) async {}
     func enqueueFragment(_ text: String, locale: String, gender: String?) async {}
     func flushPendingSpeech(locale: String, gender: String?) async {}

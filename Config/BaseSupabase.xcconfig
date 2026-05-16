@@ -1,18 +1,21 @@
 //
 // Supabase（クライアント用・現行の API Keys 方式）
-// - SUPABASE_URL … Dashboard の Project URL（https://xxxx.supabase.co）
-// - SUPABASE_PUBLISHABLE_KEY … Settings → API Keys の Publishable key（sb_publishable_...）
+// - SUPABASE_REST_HOST … Dashboard の Project URL に対応する **ホスト名のみ**（例: zzzz.supabase.co）
+//    ※ xcconfig と Info.plist で `https://…` を展開すると `//` がコメント扱いになり壊れるため、スキームは載せない。
+// - SUPABASE_PUBLISHABLE_KEY … Settings → API Keys の Publishable key（sb_publishable_…）
 // Secret keys（sb_secret_...）／service_role はクライアントに置かないこと。
 //
-// Secrets.xcconfig が無い環境では値が空のままビルドされます。
-// セットアップ: Secrets.example.xcconfig を Secrets.xcconfig にコピーして値を埋めてください。
+// Sign in with Apple: Dashboard の Apple プロバイダ「Client IDs」にネイティブの Bundle ID を含める（Secrets.example.xcconfig の注記を参照）。
+//
+// Secrets.xcconfig を置いた場合のみ上書きされる（未定義時は直下の開発用デフォルトが使われる）。
+// 別プロジェクトへの切替: Secrets.example.xcconfig を Config/Secrets.xcconfig にコピーして編集してください。
 //
 
-SUPABASE_URL = "https://zbnwaawfvhjrbrfobbvw.supabase.co"
-SUPABASE_PUBLISHABLE_KEY = "sb_publishable_SdEdr2cotYZPeFuED4I5iQ_WLHaRj62"
+// URL に // が含まれないように **ホスト名のみ**書くこと（末尾スラッシュなし）。
+
+SUPABASE_REST_HOST = zbnwaawfvhjrbrfobbvw.supabase.co
+SUPABASE_PUBLISHABLE_KEY = sb_publishable_SdEdr2cotYZPeFuED4I5iQ_WLHaRj62
 
 #include? "Secrets.xcconfig"
 
-// GENERATE_INFOPLIST_FILE と組み合わせて Bundle で参照可能にする
-INFOPLIST_KEY_SUPABASE_URL = $(SUPABASE_URL)
-INFOPLIST_KEY_SUPABASE_PUBLISHABLE_KEY = $(SUPABASE_PUBLISHABLE_KEY)
+// 値は AppAuthInfo.plist の $(…) から Bundle に載る。INFOPLIST_KEY_* は任意キーに効かないため使わない。

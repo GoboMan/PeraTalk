@@ -63,7 +63,7 @@ struct PeraTalkApp: App {
 
     var body: some Scene {
         WindowGroup {
-            MainTabView()
+            RootAuthGateView()
                 .environment(\.supabaseClient, supabaseLiveKit?.client)
                 .environment(\.supabaseTableClient, supabaseLiveKit?.tableClient)
                 .environment(\.supabaseEdgeFunctionsClient, supabaseLiveKit?.edgeFunctionsClient)

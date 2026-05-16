@@ -14,10 +14,21 @@ struct StubAuthService: AuthService {
         return stream
     }
 
-    func signUp(email: String, password: String) async throws {}
-    func signIn(email: String, password: String) async throws {}
-    func signInWithApple(idToken: String, nonce: String?) async throws {}
-    func signInWithGoogleOAuth() async throws {}
+    func signUp(email: String, password: String) async throws {
+        throw AuthServiceError.supabaseNotConfigured
+    }
+
+    func signIn(email: String, password: String) async throws {
+        throw AuthServiceError.supabaseNotConfigured
+    }
+
+    func signInWithApple(idToken: String, nonce: String?) async throws {
+        throw AuthServiceError.supabaseNotConfigured
+    }
+
     func signOut() async throws {}
-    func deleteAccount() async throws {}
+
+    func deleteAccount() async throws {
+        throw AuthServiceError.supabaseNotConfigured
+    }
 }

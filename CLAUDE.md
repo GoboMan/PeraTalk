@@ -41,6 +41,8 @@
 **`View → ScreenModel（@Observable）→ UseCase → Service → Client / Repository`**
 
 - **ScreenModel** は **UseCase** のみを保持する（`LLMClient`・`VocabularyRepository` などの Client／Repository を直接保持しない）。
+- **認証は例外なし**: **ScreenModel は `AuthService` を直接保持・呼び出ししない**。`warmUpSessionMirror()` / `authSessionChanges()` / `isAuthenticated`・`currentUserEmail`・`currentUserId` などの **スナップショット読取**、サインイン・サインアウト・削除は、すべて対応する **UseCase 経由**で行う（例: `WarmUpAuthMirrorUseCase` / `AuthSessionChangesUseCase` / `ReadAuthSessionSnapshotUseCase` / `FinishAppleSignInUseCase` / `SignOutUseCase` / `DeleteAccountUseCase`）。`AuthService` は Service である Port だが、これは **UseCase → AuthService** の一段で構わないという意味であって、**ScreenModel が UseCase を省略できる**わけではない。
+- **View も同様に認証 I/O を直接呼ばない**: View 内で `@Environment(\.authService)` を読み取って `signIn*` / `signOut` / `deleteAccount` / `warmUpSessionMirror` / `authSessionChanges` を直接実行しない。表示用の `isAuthenticated` / メールなども `ScreenModel` が UseCase 経由で取得した値をバインドするだけにする（`Environment` の `authService` は `App` または ScreenModel ファクトリでの UseCase 結線にのみ使う）。
 - **UseCase** は **Service** の `protocol` にだけ依存する（Client／Repository を直接受け取らない）。認証など既存の **`AuthService`** のように「すでに Service である Port」だけを受け取る場合も同様に **UseCase → Service** の一段でよい。
 - **Service** が **複数の Client／Repository** を組み合わせてアプリ向けの手順を実行する。具象の Client／Repository 実装は **Infrastructure／Feature の Repositories** に置く。
 - **オンデバイス生成**は用途別 **Client**（例：`OnDeviceWordDraftClient`）が **システム指示とユーザメッセージを渡し、構造化応答を `WordDraft` 等へ機械マップするまで**にとどめる。**プロンプト組み立て・出力のビジネス正規化**は **該当 Feature の Service**（例：`VocabularyWordDraftPrompt` と `LiveVocabularyService`）に寄せる。
@@ -142,6 +144,7 @@
 6. 同居しているトップレベル型は §5b の 4 例外（ネスト型／private ヘルパー／protocol 準拠 extension／EnvironmentKey 集約）のいずれかに該当する。
 7. ファイルが **責務過多・行数過多** になっていない。
 8. SSOT で参照されるデータ意味論は **Repository／Service／UseCase 内部**で吸収し、View にドメインの例外をべた書きしていない。
+9. **認証ルール（例外なし）**: `*ScreenModel.swift` が `AuthService` を **プロパティで保持** または **メソッドで直接呼出し** していない。View 内で `@Environment(\.authService)` の `signIn*` / `signOut` / `deleteAccount` / `warmUpSessionMirror` / `authSessionChanges` などの **認証 I/O を直接呼んでいない**。warm-up・購読・スナップショット読取も含めて、すべて専用 UseCase 経由になっている（§3）。
 
 ---
 

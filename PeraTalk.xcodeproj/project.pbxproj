@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		8528AC022FACE7D200C7EA29 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = B20000022FA7000100349A01 /* Supabase */; };
+		8568A1D82FB8AD0800A3FA78 /* TTSKit in Frameworks */ = {isa = PBXBuildFile; productRef = 8568A1D72FB8AD0800A3FA78 /* TTSKit */; };
+		8568A1DA2FB8AD0800A3FA78 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 8568A1D92FB8AD0800A3FA78 /* WhisperKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -82,7 +84,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8568A1DA2FB8AD0800A3FA78 /* WhisperKit in Frameworks */,
 				8528AC022FACE7D200C7EA29 /* Supabase in Frameworks */,
+				8568A1D82FB8AD0800A3FA78 /* TTSKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -154,6 +158,8 @@
 			name = PeraTalk;
 			packageProductDependencies = (
 				B20000022FA7000100349A01 /* Supabase */,
+				8568A1D72FB8AD0800A3FA78 /* TTSKit */,
+				8568A1D92FB8AD0800A3FA78 /* WhisperKit */,
 			);
 			productName = PeraTalk;
 			productReference = 85C1976C2FA5B2950098CFD0 /* PeraTalk.app */;
@@ -239,6 +245,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				B20000012FA7000100349A01 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				8568A1D62FB8AD0800A3FA78 /* XCRemoteSwiftPackageReference "argmax-oss-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 85C1976D2FA5B2950098CFD0 /* Products */;
@@ -631,6 +638,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		8568A1D62FB8AD0800A3FA78 /* XCRemoteSwiftPackageReference "argmax-oss-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/argmaxinc/argmax-oss-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
 		B20000012FA7000100349A01 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/supabase/supabase-swift";
@@ -642,6 +657,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		8568A1D72FB8AD0800A3FA78 /* TTSKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8568A1D62FB8AD0800A3FA78 /* XCRemoteSwiftPackageReference "argmax-oss-swift" */;
+			productName = TTSKit;
+		};
+		8568A1D92FB8AD0800A3FA78 /* WhisperKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8568A1D62FB8AD0800A3FA78 /* XCRemoteSwiftPackageReference "argmax-oss-swift" */;
+			productName = WhisperKit;
+		};
 		B20000022FA7000100349A01 /* Supabase */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = B20000012FA7000100349A01 /* XCRemoteSwiftPackageReference "supabase-swift" */;

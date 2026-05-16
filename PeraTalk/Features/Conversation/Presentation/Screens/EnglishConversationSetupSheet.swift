@@ -42,6 +42,9 @@ struct EnglishConversationSetupSheet: View {
             .safeAreaInset(edge: .bottom) {
                 startButton
             }
+            .task {
+                await model.loadConversationStartData()
+            }
         }
         .presentationDragIndicator(.visible)
     }

@@ -1,24 +1,31 @@
 import Foundation
 
-struct LiveConversationService: ConversationService {
+@MainActor
+final class LiveConversationService: ConversationService {
     private let personaRepository: any PersonaRepository
     private let themeRepository: any ThemeRepository
     private let sessionRepository: any SessionRepository
     private let llmClient: any LLMClient
     private let ttsClient: any TTSClient
+    private let speechRecognizerClient: any SpeechRecognizerClient
+    private let audioRecorderClient: any AudioRecorderClient
 
     init(
         personaRepository: any PersonaRepository,
         themeRepository: any ThemeRepository,
         sessionRepository: any SessionRepository,
         llmClient: any LLMClient,
-        ttsClient: any TTSClient
+        ttsClient: any TTSClient,
+        speechRecognizerClient: any SpeechRecognizerClient,
+        audioRecorderClient: any AudioRecorderClient
     ) {
         self.personaRepository = personaRepository
         self.themeRepository = themeRepository
         self.sessionRepository = sessionRepository
         self.llmClient = llmClient
         self.ttsClient = ttsClient
+        self.speechRecognizerClient = speechRecognizerClient
+        self.audioRecorderClient = audioRecorderClient
     }
 
     func fetchActivePersonas() async throws -> [CachedPersona] {
@@ -30,13 +37,7 @@ struct LiveConversationService: ConversationService {
     }
 
     func startSession(mode: SessionMode, personaId: UUID?, themeId: UUID?) async throws -> CachedSession {
-        let session = CachedSession(
-            mode: mode.rawValue,
-            personaId: personaId,
-            themeId: themeId
-        )
-        try await sessionRepository.save(session)
-        return session
+        CachedSession(mode: mode.rawValue, personaId: personaId, themeId: themeId)
     }
 
     func sendChat(
@@ -51,31 +52,20 @@ struct LiveConversationService: ConversationService {
         )
     }
 
-    func streamAssistantChat(
-        messages: [ChatMessage],
-        personaPrompt: String?,
-        themeDescription: String?
-    ) -> AsyncThrowingStream<String, Error> {
-        llmClient.chatStreaming(
-            messages: messages,
-            personaPrompt: personaPrompt,
-            themeDescription: themeDescription
+    func appendUtterance(to session: CachedSession, role: String, text: String) async throws {}
+
+    func endSession(session: CachedSession, utterances: [ChatMessage]) async throws -> FeedbackResult {
+        FeedbackResult(
+            grammarStrength: nil,
+            grammarWeakness: nil,
+            vocabularyStrength: nil,
+            vocabularyWeakness: nil,
+            rawText: ""
         )
     }
 
-    func appendUtterance(to session: CachedSession, role: String, text: String) async throws {
-        try await sessionRepository.appendUtterance(to: session, role: role, text: text, occurredAt: Date())
-    }
-
-    func endSession(session: CachedSession, utterances: [ChatMessage]) async throws -> FeedbackResult {
-        session.endedAt = Date()
-        session.dirty = true
-        try await sessionRepository.save(session)
-        return try await llmClient.generateFeedback(utterances: utterances, mode: session.mode)
-    }
-
     func generateCandidates(utterances: [ChatMessage]) async throws -> [VocabularyCandidate] {
-        try await llmClient.generateCandidates(utterances: utterances)
+        []
     }
 
     func speak(text: String, locale: String, gender: String?) async {
@@ -92,5 +82,33 @@ struct LiveConversationService: ConversationService {
 
     func cancelAssistantSpeechQueue() {
         ttsClient.cancelQueuedSpeech()
+    }
+
+    // MARK: - 音声入力
+
+    func ensureMicrophonePermission() async -> Bool {
+        await audioRecorderClient.requestPermission()
+    }
+
+    func warmUpSpeechRecognizer() async {
+        try? await speechRecognizerClient.warmUp()
+    }
+
+    func warmUpTextToSpeech() async {
+        try? await ttsClient.warmUp()
+    }
+
+    func startUserRecording() async throws {
+        try await audioRecorderClient.startRecording()
+    }
+
+    func cancelUserRecording() async {
+        await audioRecorderClient.cancelRecording()
+    }
+
+    func stopUserRecordingAndTranscribe() async throws -> String {
+        let url = try await audioRecorderClient.stopRecording()
+        defer { try? FileManager.default.removeItem(at: url) }
+        return try await speechRecognizerClient.transcribe(audioFileURL: url)
     }
 }

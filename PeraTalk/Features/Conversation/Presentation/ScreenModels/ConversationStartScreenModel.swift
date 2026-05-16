@@ -27,12 +27,19 @@ final class ConversationStartScreenModel {
             startSessionUseCase ?? StartSessionUseCase(conversationService: svc)
     }
 
-    func loadPersonas() async {
-        await refreshStartData()
-    }
-
-    func loadThemes() async {
-        await refreshStartData()
+    /// ペルソナとテーマを 1 回のフェッチで読み込む（二重取得による待ちを避ける）。
+    func loadConversationStartData() async {
+        do {
+            let data = try await loadStartDataUseCase.execute()
+            personas = data.personas
+            themes = data.themes
+            if selectedPersonaId == nil {
+                selectedPersonaId = personas.first?.remoteId
+            }
+        } catch {
+            personas = []
+            themes = []
+        }
     }
 
     func beginSession() async throws -> CachedSession {
@@ -41,12 +48,6 @@ final class ConversationStartScreenModel {
             personaId: selectedPersonaId,
             themeId: selectedThemeId
         )
-    }
-
-    private func refreshStartData() async {
-        guard let result = try? await loadStartDataUseCase.execute() else { return }
-        personas = result.personas
-        themes = result.themes
     }
 
     var canStartSession: Bool {
@@ -60,14 +61,7 @@ final class ConversationStartScreenModel {
         }
     }
 
-    /// 英会話セットアップシートを開く直前に呼ぶ。先頭ペルソナとフリートークを既定にする。
-    func prepareEnglishConversationDefaults() {
-        if selectedPersonaId == nil, let first = personas.first {
-            selectedPersonaId = first.remoteId
-        }
-        selectedMode = .aiFree
-        selectedThemeId = nil
-    }
+    func prepareEnglishConversationDefaults() {}
 
     func resetForSelfSoliloquy() {
         selectedMode = .selfMode

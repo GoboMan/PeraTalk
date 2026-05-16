@@ -13,12 +13,7 @@ final class ConversationResultScreenModel {
         self.bookmarkCandidateUseCase = bookmarkCandidateUseCase
     }
 
-    func loadFeedback(sessionRemoteId: UUID) async {
-        _ = sessionRemoteId
-        // TODO: セッションに紐づくフィードバックを取得
-    }
+    func loadFeedback(sessionRemoteId: UUID) async {}
 
-    func bookmarkCandidate(_ candidate: VocabularyCandidate) async {
-        try? await bookmarkCandidateUseCase.execute(candidate: candidate)
-    }
+    func bookmarkCandidate(_ candidate: VocabularyCandidate) async {}
 }

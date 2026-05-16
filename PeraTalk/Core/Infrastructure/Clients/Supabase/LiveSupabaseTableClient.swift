@@ -30,6 +30,12 @@ final class LiveSupabaseTableClient: SupabaseTableClient {
         try await client.from(table).upsert(record).execute()
     }
 
+    func insertIfNotExists<T: Encodable>(_ record: T, into table: String, onConflict: String) async throws {
+        try await client.from(table)
+            .upsert(record, onConflict: onConflict, ignoreDuplicates: true)
+            .execute()
+    }
+
     func delete(from table: String, id: UUID) async throws {
         try await client.from(table).delete().eq("id", value: id).execute()
     }

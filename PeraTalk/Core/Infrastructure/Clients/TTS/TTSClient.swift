@@ -1,6 +1,9 @@
 import Foundation
 
 protocol TTSClient {
+    /// 初回発話前のモデル読み込みなどを先に済ませる（失敗しても呼び元は継続してよい）。
+    func warmUp() async throws
+
     func speak(
         text: String,
         locale: String,

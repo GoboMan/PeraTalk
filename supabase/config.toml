@@ -300,6 +300,8 @@ max_frequency = "5s"
 # `twitter`, `x`, `slack`, `spotify`, `workos`, `zoom`.
 [auth.external.apple]
 enabled = false
+# ネイティブ iOS/macOS では id_token の aud が App の Bundle ID（例: com.tsay.PeraTalk）になる。
+# ローカルで auth を有効にするときは、配布ターゲットと同じ Bundle ID をここに入れる（Dashboard の「Client IDs」と同趣旨）。
 client_id = ""
 # DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
 secret = "env(SUPABASE_AUTH_EXTERNAL_APPLE_SECRET)"
@@ -397,4 +399,13 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.data-retention]
+verify_jwt = false
+
+# ログイン済み JWT は関数内で検証。未ログインで叩くのは GEMINI_CHAT_SKIP_AUTH 有効時のみ想定。
+[functions.gemini-chat-stream]
+verify_jwt = false
+
+# Vertex AI (Gemini) 非ストリーミング。GCP_SERVICE_ACCOUNT_JSON を Secret に登録して使う。
+# JWT は関数内で検証（未ログインは VERTEX_CHAT_SKIP_AUTH 有効時のみ）。
+[functions.vertex-chat]
 verify_jwt = false

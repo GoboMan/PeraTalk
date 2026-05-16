@@ -2,3 +2,6 @@
 
 # Supabase / Xcode — 実値はコミットしない（Secrets.example.xcconfig を参照）
 Config/Secrets.xcconfig
+
+# Claude Code のローカル設定（権限など端末固有）
+.claude/

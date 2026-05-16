@@ -18,19 +18,6 @@ struct StubConversationService: ConversationService {
         ""
     }
 
-    func streamAssistantChat(
-        messages: [ChatMessage],
-        personaPrompt: String?,
-        themeDescription: String?
-    ) -> AsyncThrowingStream<String, Error> {
-        _ = messages
-        _ = personaPrompt
-        _ = themeDescription
-        return AsyncThrowingStream<String, Error> { (continuation: AsyncThrowingStream<String, Error>.Continuation) in
-            continuation.finish()
-        }
-    }
-
     func appendUtterance(to session: CachedSession, role: String, text: String) async throws {
         _ = session
         _ = role
@@ -72,4 +59,16 @@ struct StubConversationService: ConversationService {
     }
 
     func cancelAssistantSpeechQueue() {}
+
+    func ensureMicrophonePermission() async -> Bool { false }
+
+    func warmUpSpeechRecognizer() async {}
+
+    func warmUpTextToSpeech() async {}
+
+    func startUserRecording() async throws {}
+
+    func cancelUserRecording() async {}
+
+    func stopUserRecordingAndTranscribe() async throws -> String { "" }
 }

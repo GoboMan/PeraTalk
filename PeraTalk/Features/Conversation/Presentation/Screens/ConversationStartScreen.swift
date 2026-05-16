@@ -9,14 +9,10 @@ private enum ConversationNavDestination: Hashable {
 struct ConversationStartScreen: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.supabaseClient) private var supabaseClient
-    @Environment(\.authService) private var authService
 
     @Query private var profiles: [CachedProfile]
     @State private var path = NavigationPath()
     @State private var model = ConversationStartScreenModel()
-
-    /// Supabase が有効かつログイン済みのときのみ Edge ストリームを利用する。
-    @State private var remoteConversationAvailable = false
 
     /// 英会話カードから開くセットアップシート
     @State private var showEnglishConversationSheet = false
@@ -31,10 +27,6 @@ struct ConversationStartScreen: View {
                 VStack(alignment: .leading, spacing: 28) {
                     hubHeaderStrip
                         .padding(.top, 4)
-
-                    if supabaseClient != nil, !remoteConversationAvailable {
-                        cloudSignInHint
-                    }
 
                     hubSection(title: "英会話") {
                         hubCard(
@@ -82,45 +74,12 @@ struct ConversationStartScreen: View {
             }
         }
         .task {
-            await authService.warmUpSessionMirror()
-            await refreshConversationBootstrap(authenticated: authService.isAuthenticated)
-            for await authenticated in authService.authSessionChanges() {
-                await refreshConversationBootstrap(authenticated: authenticated)
-            }
+            model = ConversationPresentationFactory.makeStartScreenModel(
+                modelContext: modelContext,
+                supabase: supabaseClient
+            )
+            await model.loadConversationStartData()
         }
-    }
-
-    /// Supabase が有効でも未ログインのとき、クラウド会話が使えない理由を伝える。
-    private var cloudSignInHint: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("クラウド会話にサインイン")
-                .font(.headline)
-            Text("テキスト会話のストリーミングには Apple または Google でのサインインが必要です。設定の「アカウント」から続行できます。")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            NavigationLink {
-                AccountSettingsScreen()
-            } label: {
-                Text("アカウント設定を開く")
-                    .font(.subheadline.weight(.semibold))
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
-
-    private func refreshConversationBootstrap(authenticated: Bool) async {
-        let useEdge = supabaseClient != nil && authenticated
-        remoteConversationAvailable = useEdge
-        model = ConversationPresentationFactory.makeStartScreenModel(
-            modelContext: modelContext,
-            supabase: supabaseClient,
-            useEdgeAuthenticatedStream: useEdge
-        )
-        await model.loadPersonas()
-        await model.loadThemes()
     }
 
     /// 参考レイアウトの上部帯に相当する余白確保・簡易装飾（ストリーク等は製品未定のため未配置）。

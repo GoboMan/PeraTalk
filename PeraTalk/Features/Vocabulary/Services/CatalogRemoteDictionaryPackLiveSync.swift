@@ -28,7 +28,7 @@ enum CatalogRemoteDictionaryPackLiveSync {
         useCase: ApplyCatalogRemoteDictionaryPackUseCase?
     ) async -> String {
         guard let useCase else {
-            return "Supabase が未設定です。SUPABASE_URL / SUPABASE_PUBLISHABLE_KEY を確認してください。"
+            return "Supabase が未設定です。SUPABASE_REST_HOST / SUPABASE_PUBLISHABLE_KEY（AppAuthInfo.plist・xcconfig）を確認してください。"
         }
         do {
             try await useCase.execute(packKey: packKey, context: context)
